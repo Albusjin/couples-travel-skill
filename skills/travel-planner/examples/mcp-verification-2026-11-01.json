@@ -1,0 +1,130 @@
+{
+  "test_date": "2026-11-01",
+  "environment": {
+    "execution": "managed cloud Linux, NOT user macOS Desktop",
+    "node": "24.19.0",
+    "codex_cli": "0.163.0",
+    "client": "@modelcontextprotocol/sdk, initialize + tools/list + invalid tools/call",
+    "credentials": "No real provider keys, accounts or personal travel data used. Placeholder keys only for protocol discovery.",
+    "network": "Railway CONNECT tunnel rejected with HTTP 403 by this environment proxy; not a railway API authorization verdict."
+  },
+  "results": [
+    {
+      "provider": "amap",
+      "version": "0.0.8",
+      "mode": "missing_key",
+      "started_at": "2026-11-01T13:15:57.445Z",
+      "initialize": false,
+      "tools_list": false,
+      "business_query": "not_tested",
+      "note": "No real API key supplied; placeholder only tests protocol discovery.",
+      "error": "MCP error -1: Connection closed",
+      "stderr_signals": [
+        "AMAP_MAPS_API_KEY environment variable is not set"
+      ]
+    },
+    {
+      "provider": "amap",
+      "version": "0.0.8",
+      "mode": "placeholder_key",
+      "started_at": "2026-11-01T13:15:57.513Z",
+      "initialize": true,
+      "tools_list": true,
+      "business_query": "not_tested",
+      "note": "No real API key supplied; placeholder only tests protocol discovery.",
+      "server": {
+        "name": "mcp-server/amap-maps",
+        "version": "0.1.0"
+      },
+      "tool_count": 12,
+      "tools": [
+        "maps_regeocode",
+        "maps_geo",
+        "maps_ip_location",
+        "maps_weather",
+        "maps_search_detail",
+        "maps_bicycling",
+        "maps_direction_walking",
+        "maps_direction_driving",
+        "maps_direction_transit_integrated",
+        "maps_distance",
+        "maps_text_search",
+        "maps_around_search"
+      ],
+      "invalid_tool_rejected": true,
+      "stderr_signals": []
+    },
+    {
+      "provider": "baidu",
+      "version": "1.0.5",
+      "mode": "missing_key",
+      "started_at": "2026-11-01T13:15:57.581Z",
+      "initialize": false,
+      "tools_list": false,
+      "business_query": "not_tested",
+      "note": "No real API key supplied; placeholder only tests protocol discovery.",
+      "error": "MCP error -1: Connection closed",
+      "stderr_signals": [
+        "BAIDU_MAP_API_KEY environment variable is not set"
+      ]
+    },
+    {
+      "provider": "baidu",
+      "version": "1.0.5",
+      "mode": "placeholder_key",
+      "started_at": "2026-11-01T13:15:57.645Z",
+      "initialize": true,
+      "tools_list": true,
+      "business_query": "not_tested",
+      "note": "No real API key supplied; placeholder only tests protocol discovery.",
+      "server": {
+        "name": "mcp-server/baidu-map",
+        "version": "1.0.0"
+      },
+      "tool_count": 10,
+      "tools": [
+        "map_geocode",
+        "map_reverse_geocode",
+        "map_search_places",
+        "map_place_details",
+        "map_distance_matrix",
+        "map_directions",
+        "map_weather",
+        "map_ip_location",
+        "map_road_traffic",
+        "map_poi_extract"
+      ],
+      "invalid_tool_rejected": true,
+      "stderr_signals": []
+    },
+    {
+      "provider": "rail",
+      "version": "0.3.10",
+      "mode": "no_credentials_required",
+      "started_at": "2026-11-01T13:15:57.710Z",
+      "initialize": false,
+      "tools_list": false,
+      "business_query": "not_tested",
+      "note": "Unmodified published server; initialization accesses railway websites.",
+      "error": "MCP error -1: Connection closed",
+      "stderr_signals": [
+        "Error making 12306 request: AxiosError: Request failed with status code 403",
+        "      statusCode: 403,",
+        "    status: 403,",
+        "  status: 403",
+        "        throw new Error('Error: get 12306 web page failed.');"
+      ]
+    }
+  ],
+  "configuration_validation": {
+    "codex_mcp_get": true,
+    "mutation": "No user-level MCP config written; TOML fields checked using an in-process -c override.",
+    "desktop_status": "not_configured_or_tested"
+  },
+  "decision": {
+    "primary": "amap stdio 0.0.8, protocol partially verified; real queries pending local Key",
+    "fallback": "baidu stdio 1.0.5, protocol partially verified; real queries pending local AK",
+    "rail": "12306-mcp 0.3.10, failed initialization in this environment; disabled by default until local retest",
+    "hotels_rental": "No selected consumer-ready mainland inventory MCP. Booking official partner MCP requires onboarding/credentials; not tested."
+  }
+}

@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.coverage
+build/
+dist/
+*.egg-info/
+# Defense in depth only: real data must live outside the repository.
+private/
+travel-data/
+*.local.json
+*.local.md

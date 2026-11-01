@@ -1,0 +1,2021 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://travel-planner.invalid/model-v1.schema.json",
+  "$defs": {
+    "place": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "longitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "provider_id",
+        "latitude",
+        "longitude"
+      ],
+      "additionalProperties": false
+    },
+    "traveler": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "planned_driver": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "planned_driver"
+      ],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "official",
+            "provider",
+            "user",
+            "mock",
+            "reference"
+          ]
+        },
+        "queried_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "conditions": {
+          "type": "object"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reliable": {
+          "type": "boolean"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "provider",
+        "kind",
+        "queried_at",
+        "conditions",
+        "url",
+        "reliable",
+        "note"
+      ],
+      "additionalProperties": false
+    },
+    "decision": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "kind": {
+          "enum": [
+            "plan_confirmation",
+            "accept_unknown_prices",
+            "unlock",
+            "expand_scope",
+            "hotel_exception",
+            "profile_update",
+            "selection",
+            "booking_confirmation",
+            "cancel_plan",
+            "start_trip",
+            "complete_trip"
+          ]
+        },
+        "target_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confirmed_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confirmed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "change_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "details": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "target_ids",
+        "summary",
+        "confirmed_by",
+        "confirmed_at",
+        "change_id",
+        "details"
+      ],
+      "additionalProperties": false
+    },
+    "constraint": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "level": {
+          "enum": [
+            "hard",
+            "soft"
+          ]
+        },
+        "result": {
+          "enum": [
+            "pass",
+            "violation",
+            "unknown"
+          ]
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "level",
+        "result",
+        "source_ids"
+      ],
+      "additionalProperties": false
+    },
+    "date_window": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "type": "string",
+          "format": "date"
+        },
+        "flexible": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "flexible"
+      ],
+      "additionalProperties": false
+    },
+    "request": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "destinations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "date_window": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/date_window"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "travelers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traveler"
+          }
+        },
+        "budget_minor": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "transport_preferences": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "rail",
+              "self_drive",
+              "rail_rental"
+            ]
+          }
+        },
+        "interests": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "must_visit": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "excluded_places": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "overrides": {
+          "$ref": "#/$defs/preference_values"
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/constraint"
+          }
+        }
+      },
+      "required": [
+        "origin",
+        "destinations",
+        "date_window",
+        "travelers",
+        "budget_minor",
+        "currency",
+        "transport_preferences",
+        "interests",
+        "must_visit",
+        "excluded_places",
+        "overrides",
+        "constraints"
+      ],
+      "additionalProperties": false
+    },
+    "buffer": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minutes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "label",
+        "minutes",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "quote_component": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "amount_minor": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mandatory": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "label",
+        "amount_minor",
+        "mandatory"
+      ],
+      "additionalProperties": false
+    },
+    "quote": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "target_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "enum": [
+            "transport",
+            "rental",
+            "fuel",
+            "charging",
+            "toll",
+            "parking",
+            "hotel",
+            "ticket",
+            "food",
+            "activity",
+            "contingency",
+            "deposit"
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "unit": {
+          "enum": [
+            "person",
+            "room_night",
+            "rental_period",
+            "item",
+            "trip"
+          ]
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "unit_amount_minor": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/quote_component"
+          }
+        },
+        "mandatory_fees_complete": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "unknown",
+            "queried",
+            "rechecked",
+            "reference",
+            "expired",
+            "unavailable"
+          ]
+        },
+        "conditions": {
+          "type": "object"
+        },
+        "expected_conditions": {
+          "type": "object"
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "queried_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "valid_until": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "target_id",
+        "label",
+        "category",
+        "currency",
+        "unit",
+        "quantity",
+        "unit_amount_minor",
+        "components",
+        "mandatory_fees_complete",
+        "status",
+        "conditions",
+        "expected_conditions",
+        "source_ids",
+        "queried_at",
+        "valid_until"
+      ],
+      "additionalProperties": false
+    },
+    "transport": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "proposal_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "mode": {
+          "enum": [
+            "rail",
+            "self_drive",
+            "rail_rental",
+            "walk",
+            "taxi",
+            "bus"
+          ]
+        },
+        "from_place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "to_place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "depart_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "arrive_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "door_to_door_minutes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transfer_notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "quote_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "proposal_id",
+        "locked",
+        "completed",
+        "mode",
+        "from_place_id",
+        "to_place_id",
+        "depart_at",
+        "arrive_at",
+        "door_to_door_minutes",
+        "transfer_notes",
+        "quote_ids",
+        "source_ids"
+      ],
+      "additionalProperties": false
+    },
+    "vehicle": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "proposal_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transmission": {
+          "enum": [
+            "automatic",
+            "manual",
+            "unknown"
+          ]
+        },
+        "power": {
+          "enum": [
+            "fuel",
+            "electric",
+            "hybrid",
+            "range_extender",
+            "unknown"
+          ]
+        },
+        "recommended": {
+          "type": "boolean"
+        },
+        "driver_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "driver_rules_verified": {
+          "type": "boolean"
+        },
+        "pickup_place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "dropoff_place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "pickup_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dropoff_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "one_way_verified": {
+          "type": "boolean"
+        },
+        "same_group_only": {
+          "type": "boolean"
+        },
+        "range_km": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "departure_energy_percent": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reserve_percent": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "energy_stops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "place_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+              },
+              "compatible": {
+                "enum": [
+                  "yes",
+                  "no",
+                  "unknown"
+                ]
+              },
+              "availability": {
+                "enum": [
+                  "verified",
+                  "unknown"
+                ]
+              },
+              "arrival_percent": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "backup_place_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "source_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+                }
+              },
+              "departure_percent": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "place_id",
+              "compatible",
+              "availability",
+              "arrival_percent",
+              "backup_place_id",
+              "source_ids",
+              "departure_percent"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "quote_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "id",
+        "proposal_id",
+        "locked",
+        "completed",
+        "class",
+        "transmission",
+        "power",
+        "recommended",
+        "driver_ids",
+        "driver_rules_verified",
+        "pickup_place_id",
+        "dropoff_place_id",
+        "pickup_at",
+        "dropoff_at",
+        "one_way_verified",
+        "same_group_only",
+        "range_km",
+        "departure_energy_percent",
+        "reserve_percent",
+        "energy_stops",
+        "quote_ids",
+        "source_ids",
+        "notes"
+      ],
+      "additionalProperties": false
+    },
+    "accommodation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "proposal_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "room_type": {
+          "enum": [
+            "double",
+            "twin",
+            "other",
+            "unknown"
+          ]
+        },
+        "rooms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "guests": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "check_in": {
+          "type": "string",
+          "format": "date"
+        },
+        "check_out": {
+          "type": "string",
+          "format": "date"
+        },
+        "brand": {
+          "type": "string",
+          "minLength": 1
+        },
+        "comfort_notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "parking": {
+          "enum": [
+            "yes",
+            "no",
+            "unknown"
+          ]
+        },
+        "breakfast": {
+          "enum": [
+            "yes",
+            "no",
+            "unknown"
+          ]
+        },
+        "latest_check_in": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cancellation": {
+          "type": "string"
+        },
+        "quote_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "policies_verified": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "proposal_id",
+        "locked",
+        "completed",
+        "place_id",
+        "room_type",
+        "rooms",
+        "guests",
+        "check_in",
+        "check_out",
+        "brand",
+        "comfort_notes",
+        "parking",
+        "breakfast",
+        "latest_check_in",
+        "cancellation",
+        "quote_ids",
+        "source_ids",
+        "policies_verified"
+      ],
+      "additionalProperties": false
+    },
+    "activity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "proposal_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "end_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timing": {
+          "enum": [
+            "fixed",
+            "flexible"
+          ]
+        },
+        "access": {
+          "enum": [
+            "verified",
+            "closed",
+            "reservation_failed",
+            "unknown"
+          ]
+        },
+        "requires_reservation": {
+          "type": "boolean"
+        },
+        "reservation_verified": {
+          "type": "boolean"
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "quote_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "id",
+        "proposal_id",
+        "locked",
+        "completed",
+        "place_id",
+        "label",
+        "start_at",
+        "end_at",
+        "timing",
+        "access",
+        "requires_reservation",
+        "reservation_verified",
+        "source_ids",
+        "quote_ids",
+        "notes"
+      ],
+      "additionalProperties": false
+    },
+    "route": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "from_place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "to_place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "mode": {
+          "enum": [
+            "rail",
+            "drive",
+            "walk",
+            "taxi",
+            "bus"
+          ]
+        },
+        "depart_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "duration_minutes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "distance_km": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "enum": [
+            "verified",
+            "estimated",
+            "unknown"
+          ]
+        },
+        "buffers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/buffer"
+          }
+        },
+        "navigation_url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "depends_on_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "transport_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "from_place_id",
+        "to_place_id",
+        "mode",
+        "depart_at",
+        "duration_minutes",
+        "distance_km",
+        "evidence",
+        "buffers",
+        "navigation_url",
+        "source_ids",
+        "depends_on_ids",
+        "notes",
+        "transport_id"
+      ],
+      "additionalProperties": false
+    },
+    "day": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "start_place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "end_place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "activity_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "route_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "accommodation_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hotel_route_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hotel_exception_decision_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "walking_km": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "driving_minutes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rest_notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "free_time_notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "weather_notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "quote_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "date",
+        "start_place_id",
+        "end_place_id",
+        "activity_ids",
+        "route_ids",
+        "accommodation_id",
+        "hotel_route_id",
+        "hotel_exception_decision_id",
+        "walking_km",
+        "driving_minutes",
+        "rest_notes",
+        "free_time_notes",
+        "weather_notes",
+        "alternatives",
+        "quote_ids"
+      ],
+      "additionalProperties": false
+    },
+    "proposal": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "enum": [
+            "rail",
+            "self_drive",
+            "rail_rental"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recommended": {
+          "type": "boolean"
+        },
+        "pros": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "cons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "risks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "attractions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "quote_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "door_to_door_minutes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "driving_minutes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cost_scope_reviewed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "mode",
+        "summary",
+        "recommended",
+        "pros",
+        "cons",
+        "risks",
+        "areas",
+        "attractions",
+        "quote_ids",
+        "door_to_door_minutes",
+        "driving_minutes",
+        "cost_scope_reviewed"
+      ],
+      "additionalProperties": false
+    },
+    "booking": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "target_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "status": {
+          "enum": [
+            "not_booked",
+            "booking_pending",
+            "booked",
+            "change_pending",
+            "cancelled",
+            "completed"
+          ]
+        },
+        "confirmation_source_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cancellation_terms": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "target_id",
+        "status",
+        "confirmation_source_id",
+        "cancellation_terms",
+        "note"
+      ],
+      "additionalProperties": false
+    },
+    "expense": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "target_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "quote_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "amount_minor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "paid",
+            "refunded"
+          ]
+        },
+        "paid_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "enum": [
+            "consumption",
+            "deposit"
+          ]
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "target_id",
+        "quote_id",
+        "amount_minor",
+        "currency",
+        "status",
+        "paid_at",
+        "kind",
+        "note"
+      ],
+      "additionalProperties": false
+    },
+    "profile": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "profile_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "values": {
+          "$ref": "#/$defs/preference_values"
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decision"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "profile_id",
+        "revision",
+        "updated_at",
+        "values",
+        "decisions"
+      ],
+      "additionalProperties": false
+    },
+    "snapshot": {
+      "type": "object",
+      "properties": {
+        "profile_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "values": {
+          "$ref": "#/$defs/preference_values"
+        }
+      },
+      "required": [
+        "profile_id",
+        "revision",
+        "values"
+      ],
+      "additionalProperties": false
+    },
+    "trip": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "trip_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "researching",
+            "proposals_ready",
+            "selected",
+            "detailed",
+            "confirmed",
+            "in_progress",
+            "completed",
+            "cancelled"
+          ]
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "preferences_snapshot": {
+          "$ref": "#/$defs/snapshot"
+        },
+        "request": {
+          "$ref": "#/$defs/request"
+        },
+        "selected_proposal_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "places": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/place"
+          }
+        },
+        "proposals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/proposal"
+          }
+        },
+        "transports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/transport"
+          }
+        },
+        "vehicles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/vehicle"
+          }
+        },
+        "accommodations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/accommodation"
+          }
+        },
+        "activities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/activity"
+          }
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/route"
+          }
+        },
+        "days": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/day"
+          }
+        },
+        "quotes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/quote"
+          }
+        },
+        "bookings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/booking"
+          }
+        },
+        "expenses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/expense"
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decision"
+          }
+        },
+        "cost_quote_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "data_mode": {
+          "enum": [
+            "real",
+            "mock"
+          ]
+        },
+        "cost_scope_reviewed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schema_version",
+        "trip_id",
+        "revision",
+        "title",
+        "status",
+        "timezone",
+        "created_at",
+        "updated_at",
+        "preferences_snapshot",
+        "request",
+        "selected_proposal_id",
+        "places",
+        "proposals",
+        "transports",
+        "vehicles",
+        "accommodations",
+        "activities",
+        "routes",
+        "days",
+        "quotes",
+        "bookings",
+        "expenses",
+        "sources",
+        "decisions",
+        "cost_quote_ids",
+        "notes",
+        "data_mode",
+        "cost_scope_reviewed"
+      ],
+      "additionalProperties": false
+    },
+    "preference_values": {
+      "type": "object",
+      "properties": {
+        "travelers": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "planned_drivers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hotel_room_type": {
+          "enum": [
+            "double",
+            "twin",
+            "other"
+          ]
+        },
+        "hotel_rooms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "hotel_budget_minor": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "walking_km": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "transport_preferences": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "rail",
+              "self_drive",
+              "rail_rental"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "interests": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "preferred_brand": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "$ref": "#/$defs/trip"
+}
