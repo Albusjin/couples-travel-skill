@@ -12,6 +12,7 @@ from .budget import summarize
 from .model import PACKAGE_ROOT, PlannerError, now
 from .store import atomic_json, digest
 from .validation import active, route_arrival, validate
+from .transport import quote_transports, rail_reference_label, reference_source, taxi_label
 
 
 def md(value):
@@ -58,9 +59,10 @@ def views(trip, generated_at=None):
     overview.extend(["## 交通、住宿与租车", "| 类型 | 安排 | 费用引用 | 核验及限制 |", "| --- | --- | --- | --- |"])
     for transport in trip["transports"]:
         if active(trip, transport):
+            details = (taxi_label(trip, transport) if transport["mode"] == "taxi" else rail_reference_label(transport))
             overview.append(f"| 交通 | {md(places[transport['from_place_id']])} → {md(places[transport['to_place_id']])}；{transport['mode']}；"
                             f"{md(transport['depart_at'])} → {md(transport['arrive_at'])} | {md(', '.join(transport['quote_ids']))} | "
-                            f"门到门：{md(transport['door_to_door_minutes'])} 分钟；{md('；'.join(transport['transfer_notes']))} |")
+                            f"门到门：{md(transport['door_to_door_minutes'])} 分钟；{md(details)}；{md('；'.join(transport['transfer_notes']))} |")
     for hotel in trip["accommodations"]:
         if active(trip, hotel):
             overview.append(f"| 酒店 | {md(places[hotel['place_id']])}；{hotel['room_type']}；{hotel['rooms']} 间 / {hotel['guests']} 人；"
@@ -77,8 +79,10 @@ def views(trip, generated_at=None):
                 overview.append(f"补能：{md(places[stop['place_id']])}；兼容 {stop['compatible']}；可用 {stop['availability']}；"
                                 f"备用 {md(places.get(stop['backup_place_id'], '未知'))}")
     activities, routes = {v["id"]: v for v in trip["activities"]}, {v["id"]: v for v in trip["routes"]}
-    route_lines = ["导航入口不代表路径耗时或可通行性已验证。", "| 日期 | 路段 | 方式 | 出发 | 含缓冲预计抵达 | 距离 km | 证据 | 导航 | 来源 |",
-                   "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    transports = {t["id"]: t for t in trip["transports"]}
+    sources = {s["id"]: s for s in trip["sources"]}
+    route_lines = ["导航入口不代表路径耗时或可通行性已验证。打车按实际人数合乘一辆车；铁路参考日余票不代表目标日余票。", "| 日期 | 路段 | 方式 | 出发 | 含缓冲预计抵达 | 距离 km | 证据 | 导航 | 来源 | 说明 |",
+                   "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
     for day in sorted(trip["days"], key=lambda d: d["date"]):
         overview.extend([f"## {day['date']} · {md(day['id'])}",
                          f"步行：{md(day['walking_km'])} km；驾驶：{md(day['driving_minutes'])} 分钟",
@@ -89,12 +93,22 @@ def views(trip, generated_at=None):
         for rid in day["route_ids"]:
             r = routes[rid]
             arrival = route_arrival(r)
+            transport = transports.get(r["transport_id"], {})
+            details = []
+            if r["mode"] == "taxi":
+                details.append(taxi_label(trip, transport))
+            if transport.get("rail_reference"):
+                details.append(rail_reference_label(transport))
+            evidence = ("参考（目标条件待核验）" if transport.get("rail_reference")
+                        or any(reference_source(sources[sid]) for sid in r["source_ids"]) else r["evidence"])
+            details.extend(f"{b['label']} {b['minutes']} 分钟：{b['reason']}" for b in r["buffers"])
+            details.extend(r["notes"])
             line = (f"| {day['date']} | {md(places[r['from_place_id']])} → {md(places[r['to_place_id']])} | {r['mode']} | "
-                    f"{md(r['depart_at'])} | {arrival.isoformat() if arrival else '未知'} | {md(r['distance_km'])} | {r['evidence']} | "
-                    f"{link(r['navigation_url'])} | {md(', '.join(r['source_ids']))} |")
+                    f"{md(r['depart_at'])} | {arrival.isoformat() if arrival else '未知'} | {md(r['distance_km'])} | {evidence} | "
+                    f"{link(r['navigation_url'])} | {md(', '.join(r['source_ids']))} | {md('；'.join(details))} |")
             route_lines.append(line)
             overview.append(f"交通：{md(places[r['from_place_id']])} → {md(places[r['to_place_id']])}，{r['mode']}，"
-                            f"{md(r['duration_minutes'])} 分钟 + 缓冲 {sum(b['minutes'] for b in r['buffers'])} 分钟；{link(r['navigation_url'])}")
+                            f"{md(r['duration_minutes'])} 分钟 + 缓冲 {sum(b['minutes'] for b in r['buffers'])} 分钟；{evidence}；{md('；'.join(details))}；{link(r['navigation_url'])}")
         for label, field in (("用餐/休息", "rest_notes"), ("自由活动", "free_time_notes"), ("天气风险", "weather_notes"), ("替代活动", "alternatives")):
             overview.append(f"{label}：{md('；'.join(day[field]) or '待补充')}")
     overview.extend(["## 预约、预订与锁定", "本地状态不代表第三方订单被修改。"])
@@ -117,9 +131,13 @@ def views(trip, generated_at=None):
     budget_lines = ["| 费用 | 类别 | 单位 × 数量 | 已知金额 | 费用构成 | 状态 | 完整且有报价证据 |",
                     "| --- | --- | --- | --- | --- | --- | --- |"]
     for row in budget["rows"]:
+        quote_record = next(q for q in trip["quotes"] if q["id"] == row["quote_id"])
+        pricing_notes = [rail_reference_label(t) for t in quote_transports(trip, quote_record) if t.get("rail_reference")]
+        if quote_record["conditions"].get("pricing_basis") == "current_estimate":
+            pricing_notes.append("当前打车预估价，非目标时段锁价，出发前复核")
         components = "；".join(f"{md(c['label'])}（{'强制' if c['mandatory'] else '可选'}）：{money(c['amount_minor'], row['currency'])}" for c in row["components"])
         budget_lines.append(f"| {md(row['label'])}（{row['quote_id']}） | {row['category']} | {row['unit']} × {row['quantity']} | "
-                            f"{money(row['known_amount_minor'], row['currency'])} | 基础单价 {money(row['unit_amount_minor'], row['currency'])}；{components or '无额外费用记录'} | {row['effective_status']} | {row['verified']} |")
+                            f"{money(row['known_amount_minor'], row['currency'])} | 基础单价 {money(row['unit_amount_minor'], row['currency'])}；{components or '无额外费用记录'}；{md('；'.join(pricing_notes))} | {row['effective_status']} | {row['verified']} |")
     budget_lines.extend([f"已知小计（含估算/历史参考）：{money(budget['known_subtotal_minor'], currency)}",
                          f"其中有完整报价证据的小计：{money(budget['verified_subtotal_minor'], currency)}",
                          f"已完整核实的总预算：{money(budget['complete_verified_total_minor'], currency)}",

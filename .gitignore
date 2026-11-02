@@ -12,3 +12,8 @@ travel-data/
 *.local.json
 *.local.md
 *.local.toml
+.env
+.env.*
+*.backup-*
+# Generated inside extracted ZIPs only; public releases embed their own copy.
+MANIFEST.json

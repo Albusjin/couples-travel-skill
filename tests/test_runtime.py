@@ -1,6 +1,7 @@
 """Host/configuration regression tests. No real credentials or provider calls."""
 
 import importlib.util
+import io
 import json
 import os
 import shutil
@@ -19,13 +20,20 @@ sys.path.insert(0, str(SKILL / "scripts"))
 import runtime
 from travel_runtime import RuntimeConfigError
 from travel_runtime.config import load_settings
-from travel_runtime.mcp import catalog, server_definition, server_launch
+from travel_runtime.mcp import catalog, routing_manifest, server_definition, server_launch
 
 
 class ConfigurationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="travel runtime ")
         self.home = Path(self.temp.name).resolve()
+        # Default-path tests must not read this machine's runtime.local.toml.
+        fixture_skill = self.home / "skill"
+        (fixture_skill / "config").mkdir(parents=True)
+        shutil.copyfile(SKILL / "config/runtime.toml", fixture_skill / "config/runtime.toml")
+        root_patch = patch("travel_runtime.config.SKILL_ROOT", fixture_skill)
+        root_patch.start()
+        self.addCleanup(root_patch.stop)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -181,6 +189,30 @@ class RuntimeLaunchTests(unittest.TestCase):
 
 
 class SharedMCPTests(unittest.TestCase):
+    def test_routing_keeps_installer_whitelists_and_references_consistent(self):
+        routing = routing_manifest()
+        self.assertEqual(routing["schema_version"], 1)
+        self.assertTrue(routing["policy"]["read_only"])
+        self.assertEqual(routing["policy"]["max_parallel_queries"], 1)
+        self.assertFalse(routing["policy"]["automatic_background_refresh"])
+        self.assertEqual(set(routing["services"]),
+                         {"travel_amap", "travel_rail", "travel_didi", "travel_hotel"})
+        self.assertFalse(set(routing["services"]) & set(routing["excluded"]))
+        for name, service in routing["services"].items():
+            self.assertEqual(len(service["tools"]), len(set(service["tools"])))
+            reference = service["usage_reference"].split("#", 1)[0]
+            self.assertTrue((SKILL / reference).is_file())
+            if name in catalog():
+                self.assertEqual(set(service["tools"]), set(catalog()[name]["enabled_tools"]))
+
+    def test_routing_cli_is_offline_and_does_not_load_private_runtime_settings(self):
+        with patch("runtime.load_settings", side_effect=AssertionError("must not load private settings")), \
+                patch("runtime.subprocess.run") as process, \
+                patch("sys.stdout", new_callable=io.StringIO) as output:
+            self.assertEqual(runtime.main(["mcp-routing"]), 0)
+        process.assert_not_called()
+        self.assertEqual(json.loads(output.getvalue())["routing"], routing_manifest())
+
     def test_shared_arguments_are_preserved_by_platform_adapter(self):
         settings = replace(load_settings(environ={}), node="/fixture/node", npx="/fixture/npx", platform="darwin")
         shared = {"fixture": {"command": "npx", "args": ["--offline", "-y", "fixture@1", "--read-only"],

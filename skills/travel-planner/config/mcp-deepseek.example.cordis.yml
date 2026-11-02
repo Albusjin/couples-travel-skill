@@ -1,0 +1,48 @@
+# DSH Cordis overlay, not Codex TOML or generic mcpServers JSON.
+# Copy to a private location; enable only selected, authorized entries.
+# The launching DSH process must have the named environment variables.
+# disabled is a Cordis entry field; reconnect is MCP-client configuration.
+# This client has NO Codex-style enabled_tools field. Enforce the routing
+# allowlist using the host's permissions/filter or a reviewed gateway.
+# If enforcement is unavailable, keep Didi disabled (it exposes order tools).
+- insert:
+    - id: mcp-travel-amap
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: true
+      config:
+        serverName: travel_amap
+        transport: streamable-http
+        url: !!js '"https://mcp.amap.com/mcp?key=" + encodeURIComponent(process.env.AMAP_MAPS_API_KEY || "")'
+        reconnect:
+          enabled: false
+    - id: mcp-travel-rail
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: true
+      config:
+        serverName: travel_rail
+        transport: stdio
+        command: npx
+        args: ['-y', '12306-mcp@0.3.10']
+        toolCallTimeoutMs: 60000
+        reconnect:
+          enabled: false
+    - id: mcp-travel-didi
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: true
+      config:
+        serverName: travel_didi
+        transport: streamable-http
+        url: !!js '"https://mcp.didichuxing.com/mcp-servers?key=" + encodeURIComponent(process.env.DIDI_MCP_KEY || "")'
+        reconnect:
+          enabled: false
+    - id: mcp-travel-hotel
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: true
+      config:
+        serverName: travel_hotel
+        transport: streamable-http
+        url: https://mcp.rollinggo.cn/mcp
+        headers:
+          Authorization: !!js '"Bearer " + (process.env.ROLLINGGO_API_KEY || "")'
+        reconnect:
+          enabled: false

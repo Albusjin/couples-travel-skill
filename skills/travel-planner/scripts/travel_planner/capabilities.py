@@ -5,7 +5,7 @@ from typing import Protocol
 
 from .model import PlannerError, now
 
-CAPABILITIES = ("maps", "rail", "hotels", "rental", "energy", "attractions", "weather")
+CAPABILITIES = ("maps", "rail", "taxi", "hotels", "rental", "energy", "attractions", "weather")
 
 
 @dataclass(frozen=True)

@@ -1,6 +1,7 @@
 """Integer money arithmetic; evidence and completeness never inferred from a sum."""
 
 from .model import timestamp, now
+from .transport import quote_transports, reference_source
 
 
 def quote_state(quote, as_of=None, trip=None):
@@ -23,10 +24,22 @@ def quote_state(quote, as_of=None, trip=None):
                 expected.update(pickup_at=vehicle["pickup_at"], dropoff_at=vehicle["dropoff_at"],
                                 drivers=len(vehicle["driver_ids"]), transmission=vehicle["transmission"],
                                 pickup_place_id=vehicle["pickup_place_id"], dropoff_place_id=vehicle["dropoff_place_id"])
+        transports = quote_transports(trip, quote)
+        for transport in transports:
+            if transport["mode"] == "taxi":
+                expected.update(passengers=len(trip["request"]["travelers"]), vehicle_count=1,
+                                from_place_id=transport["from_place_id"], to_place_id=transport["to_place_id"],
+                                depart_at=transport["depart_at"])
         if any(quote["conditions"].get(key) != value for key, value in expected.items()):
             return "expired"
     if quote["valid_until"] and timestamp(quote["valid_until"]) <= timestamp(as_of or now()):
         return "expired"
+    if trip is not None and state in ("queried", "rechecked"):
+        sources = {s["id"]: s for s in trip["sources"]}
+        if (any(t.get("rail_reference") for t in quote_transports(trip, quote))
+                or any(reference_source(sources[sid]) for sid in quote["source_ids"] if sid in sources)
+                or quote["conditions"].get("pricing_basis") == "current_estimate"):
+            return "reference"
     return state
 
 

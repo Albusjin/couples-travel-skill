@@ -19,7 +19,7 @@ DEFAULTS = {
     "travelers": 2, "planned_drivers": 2, "hotel_room_type": "double",
     "hotel_rooms": 1, "hotel_budget_minor": [20000, 30000],
     "preferred_brand": "华住会", "walking_km": [5, 10],
-    "transport_preferences": ["self_drive", "rail_rental", "rail"],
+    "transport_preferences": ["self_drive", "rail_rental", "rail", "rail_taxi", "taxi"],
 }
 SENSITIVE_KEYS = {
     "password", "token", "access_token", "api_key", "secret", "id_card",

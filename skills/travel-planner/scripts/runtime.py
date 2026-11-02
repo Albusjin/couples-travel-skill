@@ -14,7 +14,7 @@ if sys.version_info < (3, 11):
 
 from travel_runtime import RuntimeConfigError
 from travel_runtime.config import SKILL_ROOT, load_settings
-from travel_runtime.mcp import catalog, server_definition, server_launch
+from travel_runtime.mcp import amap_definition, catalog, routing_manifest, server_definition, server_launch
 
 
 def check_version(command, expression, minimum, label):
@@ -58,17 +58,23 @@ def launch(settings, script, arguments):
     return subprocess.run([interpreter, str(SKILL_ROOT / "scripts" / script), *arguments], env=environment).returncode
 
 
-def doctor(settings):
+def doctor(settings, core_only=False):
     checks = {}
-    for label, check in (("python", lambda: python_version(settings.python)),
-                         ("venv", lambda: python_version(str(settings.venv_python))),
-                         ("node", lambda: node_version(settings)),
-                         ("mcp_launch", lambda: server_launch(settings.npx, settings.node, settings.platform,
-                                                               npx_cli=settings.npx_cli))):
+    interpreter = str(settings.venv_python) if settings.venv_python.is_file() else settings.python
+    required = [("python", lambda: python_version(interpreter)),
+                ("core_dependencies", lambda: subprocess.run(
+                    [interpreter, "-c", "import jsonschema; from zoneinfo import ZoneInfo; ZoneInfo('Asia/Shanghai')"],
+                    capture_output=True, timeout=20, check=True).returncode)]
+    optional = [("venv", lambda: python_version(str(settings.venv_python))),
+                ("node", lambda: node_version(settings)),
+                ("mcp_launch", lambda: server_launch(settings.npx, settings.node, settings.platform,
+                                                     npx_cli=settings.npx_cli))]
+    for label, check in required + optional:
         try:
             checks[label] = {"ok": True, "result": check()}
         except (RuntimeConfigError, OSError, subprocess.SubprocessError):
             checks[label] = {"ok": False} # No environment values, credentials or command stderr.
+        checks[label]["required"] = not core_only or label in {name for name, _ in required}
     return {"platform": settings.platform, "runtime_config": str(settings.config_file) if settings.config_file else None,
             "paths": {"codex_config": str(settings.codex_config), "skill_destination": str(settings.skill_destination),
                       "venv_python": str(settings.venv_python), "data_dir": str(settings.data_dir) if settings.data_dir else None},
@@ -80,30 +86,41 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Travel Planner 共用运行环境入口（Python 3.11+）")
     parser.add_argument("--runtime-config", type=Path)
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("doctor")
+    diagnosis = sub.add_parser("doctor")
+    diagnosis.add_argument("--core-only", action="store_true", help="核心/HTTP 模式不要求 Node/npm 或专用 venv")
     install = sub.add_parser("bootstrap")
     install.add_argument("--core-only", action="store_true")
     for name in ("run", "setup-amap", "install"):
         entry = sub.add_parser(name, add_help=False)
         if name == "setup-amap":
             entry.add_argument("--bootstrap", action="store_true")
-    sub.add_parser("mcp-config", help="只输出本机无凭证 TOML；不改写 Codex 配置")
+            entry.add_argument("--transport", choices=("stdio", "http"), default="stdio")
+    mcp = sub.add_parser("mcp-config", help="只输出本机无凭证 TOML；不改写 Codex 配置")
+    mcp.add_argument("--transport", choices=("stdio", "http"), default="stdio")
+    sub.add_parser("mcp-routing", help="离线查看 Skill 调用路由；不读取凭证、不连接服务商")
     # Forward script-specific options without requiring an extra '--'.
     args, extra = parser.parse_known_args(argv)
     if extra and args.command not in ("run", "setup-amap", "install"):
         parser.error("无法识别的参数")
     try:
+        if args.command == "mcp-routing":
+            print(json.dumps({"routing": routing_manifest(),
+                              "note": "仅为 Skill 路由；实际可用性取决于当前聊天工具，未执行连接或业务查询"},
+                             ensure_ascii=False, indent=2))
+            return 0
         settings = load_settings(args.runtime_config)
         if args.command == "doctor":
-            result = doctor(settings)
+            result = doctor(settings, core_only=args.core_only)
             print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 0 if all(item["ok"] for item in result["checks"].values()) else 2
+            return 0 if all(item["ok"] for item in result["checks"].values() if item["required"]) else 2
         if args.command == "bootstrap":
             bootstrap(settings, args.core_only)
             return 0
         if args.command == "mcp-config":
             import tomlkit
-            document = {"mcp_servers": {name: server_definition(name, settings) for name in catalog()}}
+            definitions = ({"travel_amap": amap_definition(settings, transport="http")} if args.transport == "http"
+                           else {name: server_definition(name, settings) for name in catalog()})
+            document = {"mcp_servers": definitions}
             print(tomlkit.dumps(document), end="")
             return 0
         arguments = extra
@@ -111,8 +128,11 @@ def main(argv=None):
             arguments = arguments[1:]
         script = {"run": "travel.py", "setup-amap": "setup_amap.py", "install": "install.py"}[args.command]
         if args.command == "setup-amap":
-            node_version(settings)
-            server_launch(settings.npx, settings.node, settings.platform, npx_cli=settings.npx_cli)
+            if args.transport == "stdio":
+                node_version(settings)
+                server_launch(settings.npx, settings.node, settings.platform, npx_cli=settings.npx_cli)
+            if args.transport != "stdio":
+                arguments = ["--transport", args.transport, *arguments]
             if args.bootstrap:
                 bootstrap(settings)
         return launch(settings, script, arguments)

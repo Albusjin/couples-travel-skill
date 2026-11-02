@@ -327,7 +327,9 @@
             "enum": [
               "rail",
               "self_drive",
-              "rail_rental"
+              "rail_rental",
+              "taxi",
+              "rail_taxi"
             ]
           }
         },
@@ -659,6 +661,12 @@
             "type": "string",
             "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
           }
+        },
+        "taxi_details": {
+          "$ref": "#/$defs/taxi_details"
+        },
+        "rail_reference": {
+          "$ref": "#/$defs/rail_reference"
         }
       },
       "required": [
@@ -1470,7 +1478,9 @@
           "enum": [
             "rail",
             "self_drive",
-            "rail_rental"
+            "rail_rental",
+            "taxi",
+            "rail_taxi"
           ]
         },
         "summary": {
@@ -2000,7 +2010,9 @@
             "enum": [
               "rail",
               "self_drive",
-              "rail_rental"
+              "rail_rental",
+              "taxi",
+              "rail_taxi"
             ]
           },
           "uniqueItems": true
@@ -2015,6 +2027,66 @@
           "type": "string"
         }
       }
+    },
+    "taxi_details": {
+      "type": "object",
+      "properties": {
+        "passengers": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "vehicle_count": {
+          "const": 1
+        },
+        "service_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "passenger_capacity": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "passengers",
+        "vehicle_count",
+        "service_name",
+        "passenger_capacity"
+      ],
+      "additionalProperties": false
+    },
+    "rail_reference": {
+      "type": "object",
+      "properties": {
+        "target_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "reference_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "reason": {
+          "enum": [
+            "not_on_sale",
+            "schedule_unpublished",
+            "target_empty"
+          ]
+        }
+      },
+      "required": [
+        "target_date",
+        "reference_date",
+        "reason"
+      ],
+      "additionalProperties": false
     }
   },
   "$ref": "#/$defs/trip"

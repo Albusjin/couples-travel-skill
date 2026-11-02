@@ -1,4 +1,6 @@
-# Windows / macOS 系统迁移与配置指南
+# Windows / macOS / Linux 运行路径与迁移
+
+通用分享版先读 [Agent 交接](../AGENT_HANDOFF.md) 与 [跨 Harness 配置](harness-setup.md)。本文说明共用运行层；下文 Codex 配置生成和高德 --apply 仅适用于 Codex，不能用来配置 DSH。Linux 已有运行目录适配，目标设备仍需验证。
 
 本文对应运行层重构版，日期：2026-11-02。迁移操作系统不改变旅行规则、`schema_version=1.0` 或现有旅行修订。适用于仓库内使用及复制安装后的完整 Skill。本文路径示例应替换为目标机器的实际路径。
 
@@ -11,7 +13,8 @@ travel-planner/
 │   ├── runtime.toml                 # 共用默认配置，含平台目录配置
 │   ├── runtime.local.example.toml   # 本机覆盖模板，无凭证
 │   ├── runtime.local.toml           # 用户自行创建，Git/安装器忽略
-│   └── mcp-servers.toml             # 唯一一份 MCP 包、参数、超时、白名单
+│   ├── mcp-servers.toml             # 高德/铁路便携安装模板
+│   └── mcp-routing.toml             # Skill 已选服务、工具与调用职责，不含凭证
 ├── scripts/
 │   ├── runtime.py                   # 共用 bootstrap/doctor/启动/生成配置入口
 │   ├── travel_runtime/              # 配置解析、进程与 MCP 运行适配
@@ -30,7 +33,7 @@ travel-planner/
 └── requirements*.txt                # 共用依赖，含 Windows 所需 IANA tzdata
 ```
 
-业务核心不依赖 `travel_runtime`，不判断 Windows/macOS，也不读取 MCP 运行配置。CLI/安装工具在边界解析配置后传入参数。模型加载显式使用 UTF-8，避免 Windows 默认编码影响含中文的 Schema。
+业务核心不依赖 `travel_runtime`，不判断 Windows/macOS，也不读取 MCP 运行配置。CLI/安装工具在边界解析配置后传入参数。分享包安装目标可通过 --destination 指定，不能覆盖已有可用版本。模型加载显式使用 UTF-8，避免 Windows 默认编码影响含中文的 Schema。
 
 macOS/Windows 的区别仅为初始解释器发现、默认目录、虚拟环境解释器位置及原生子进程启动方式。Windows 用 `node.exe` 执行 `npx-cli.js`，不把 `npx.cmd` 交给原生进程 API；路径始终作为独立参数，不拼接 shell 命令。macOS 默认直接使用已发现的 npx，也支持显式 `npx_cli`。二者使用同一包版本、白名单和高德检查流程。
 
@@ -79,7 +82,7 @@ Windows 缺少 LOCALAPPDATA 时运行层使用用户目录下 `AppData/Local`；
 
 ## 4. 两种系统的首次配置示例
 
-从完整 Skill 的根目录执行，需先安装 Python 3.11+；需要 MCP 时另装 Node.js 24 LTS（最低 22.14）。
+从完整 Skill 的根目录执行，需 Python 3.11+；仅本地 stdio 服务需要可用 Node，HTTP 服务不要求 Node/npm。优先复用已有合适运行时，不必重复安装。
 
 macOS 终端：
 
@@ -146,9 +149,9 @@ python3 scripts/runtime.py --runtime-config /absolute/private/runtime.toml run r
 
 ## 5. MCP 哪些共用，哪些必须重新生成
 
-`config/mcp-servers.toml` 是两系统的唯一服务定义源，包含高德与默认停用的铁路服务。修改包版本、超时或工具白名单只改此文件。原 `examples/mcp-config.macOS.toml` 已由该共用定义取代，不再分别维护 macOS/Windows 模板。
+`config/mcp-servers.toml` 是高德/铁路便携安装模板，包含高德 stdio/HTTP 定义与新机器默认停用的铁路定义，不是本机当前四服务部署导出。Skill 的服务职责与允许工具统一见 `config/mcp-routing.toml` 和 [调用指南](mcp-usage.md)，用 `runtime.py mcp-routing` 离线查看。另一台设备仅调用其当前可见且已授权的工具；更换服务或白名单时同步检查路由与安装模板。
 
-`runtime.py mcp-config` 根据共用定义和当前机器路径生成 TOML，**只输出，不写入** `~/.codex/config.toml`。先 bootstrap 安装生成器所需 tomlkit。输出不包含高德 Key，使用 `env_vars=["AMAP_MAPS_API_KEY"]`，但包含本机 PATH 和配置的代理/证书等环境值，保存在本机即可。手工合并时只合并目标服务表，保留其他模型/项目/服务配置，避免同名表重复。
+`runtime.py mcp-config` 根据便携定义和当前机器路径生成 stdio TOML，**只输出，不写入** `~/.codex/config.toml`。`mcp-config --transport http` 仅生成未授权、未启用的高德 HTTP 模板，不生成滴滴/酒店连接配置。生成器需要 tomlkit；优先复用已安装依赖。stdio 输出不包含高德 Key，使用 `env_vars=["AMAP_MAPS_API_KEY"]`，但包含本机 PATH 和配置的代理/证书等环境值，保存在本机即可。手工合并时只合并目标服务表，保留其他配置；不要用便携 npx 模板覆盖本机已固定安装的铁路进程定义。
 
 高德辅助工具也从同一份定义生成实际测试进程和写入的服务表。仍须真实杭州地点、道路路线和近期天气检查全通过，带 `--apply` 才能备份并合并 `travel_amap`，不会自动启用铁路。测试失败、模拟结果、配置并发修改、文件写入失败的原有保护保持有效。高德辅助工具的 `--config <路径>` 可单次覆盖 Codex 配置目标。
 
@@ -181,6 +184,6 @@ python3 scripts/runtime.py --runtime-config /absolute/private/runtime.toml run r
 
 仓库根目录执行 `python -m unittest discover -s tests -v`。CI 使用 Ubuntu/macOS/Windows × Python 3.11/3.13，统一安装 Node 24 和同一套依赖，运行全量测试。测试覆盖配置优先级、空格/中文路径、参数透传、独立复制安装、本机配置排除、共用服务定义、Windows npm 适配及原有业务规则。
 
-当前云端执行的是 Linux 自动化与离线 Node/npm 检查；新增 CI 的定义不等于其远端已经运行成功，也不等于两台用户设备的 Key、GUI 环境或真实查询已验收。目标机需按第 6 节完成实际验证。
+原项目有历史 Linux 自动化记录；CI 定义不代表本次远端执行成功，也不代表目标机 Key、GUI 环境或真实查询已验收。目标机需按第 6 节完成实际验证。
 
 回滚时先停止新设备写入，保留新产生的资料和配置备份，再切换回旧安装与其配套本机配置。高德配置写入前会产生 `config.toml.backup-*`；恢复前检查备份之后其他服务是否被修改，优先只恢复相关 MCP 表。需要恢复旅行内容时使用现有 restore/propose/commit 流程保留修订历史，不直接覆盖唯一数据副本。没有真实执行过高德 `--apply` 的迁移，仅需修正运行配置或切回原安装即可。

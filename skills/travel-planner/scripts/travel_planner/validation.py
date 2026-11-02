@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 from .budget import summarize
 from .model import effective_preferences, schema_errors, timestamp
+from .transport import quote_transports, reference_source
 
 COLLECTIONS = ("places", "proposals", "transports", "vehicles", "accommodations", "activities",
                "routes", "days", "quotes", "bookings", "expenses", "sources", "decisions")
@@ -92,7 +93,8 @@ def validate(trip, as_of=None):
 
     def sourced(ids):
         allowed = {"official", "provider", "user"} | ({"mock"} if trip["data_mode"] == "mock" else set())
-        return bool(ids) and all(maps["sources"][sid]["reliable"] and maps["sources"][sid]["kind"] in allowed for sid in ids)
+        return bool(ids) and all(maps["sources"][sid]["reliable"] and maps["sources"][sid]["kind"] in allowed
+                                 and not reference_source(maps["sources"][sid]) for sid in ids)
 
     req = trip["request"]
     hard("origin", trip["trip_id"], "pass" if req["origin"] else "unknown", "出发地须由用户提供")
@@ -209,7 +211,24 @@ def validate(trip, as_of=None):
             if q["category"] == "hotel" and q["unit_amount_minor"] is not None and q["unit_amount_minor"] > prefs["hotel_budget_minor"][1]:
                 warn("hotel_budget", hotel["id"], "酒店超过适用房晚预算偏好；展示原因与低价备选")
     for transport in trip["transports"]:
+        tid = transport["id"]
+        if transport.get("taxi_details"):
+            details = transport["taxi_details"]
+            if transport["mode"] != "taxi" or details["passengers"] != len(travelers):
+                errors.append({"code": "taxi_passengers", "target_id": tid, "message": "打车人数须匹配实际旅行人数，车型信息仅用于 taxi 交通"})
+            if active(trip, transport) and details["passenger_capacity"] is not None and details["passenger_capacity"] < details["passengers"]:
+                hard("taxi_capacity", tid, "violation", "一辆车的已知乘客容量不足，须重新选择车型并核实行李空间")
+        reference = transport.get("rail_reference")
+        if reference:
+            if (transport["mode"] != "rail" or reference["reference_date"] >= reference["target_date"]
+                    or (window and not window["start"] <= reference["target_date"] <= window["end"])
+                    or (transport["depart_at"] and timestamp(transport["depart_at"]).astimezone(zone).date().isoformat() != reference["target_date"])):
+                errors.append({"code": "rail_reference_dates", "target_id": tid, "message": "参考日须早于目标日；目标日须匹配本次旅行及交通出发日期"})
         if active(trip, transport):
+            if reference:
+                hard("rail_schedule", tid, "unknown", f"目标日 {reference['target_date']} 尚未核验，使用 {reference['reference_date']} 的参考班次；目标日时刻、票价和余票须复核")
+            if transport["mode"] == "taxi":
+                warn("taxi_estimate", tid, "按实际人数合乘一辆车，费用不乘人数；车型容量、行李、上车点、候车与动态价格出发前复核")
             if transport["depart_at"] and transport["arrive_at"] and timestamp(transport["arrive_at"]) <= timestamp(transport["depart_at"]):
                 errors.append({"code": "transport_time", "target_id": transport["id"], "message": "交通抵达时间须晚于出发"})
             if transport["depart_at"] and transport["arrive_at"] and transport["door_to_door_minutes"] is not None:
@@ -220,6 +239,13 @@ def validate(trip, as_of=None):
                 q = maps["quotes"][qid]
                 if q["unit"] == "person" and q["quantity"] != len(travelers):
                     errors.append({"code": "person_quantity", "target_id": qid, "message": "按人计价须覆盖实际人数"})
+
+    for quote in trip["quotes"]:
+        taxi_targets = [t for t in quote_transports(trip, quote) if t["mode"] == "taxi"]
+        if any(r["id"] == quote["target_id"] and r["mode"] == "taxi" for r in trip["routes"]):
+            taxi_targets.append(quote)
+        if taxi_targets and quote["category"] == "transport" and (quote["unit"] != "trip" or quote["quantity"] != 1):
+            errors.append({"code": "taxi_quantity", "target_id": quote["id"], "message": "单程打车按一辆车计费：unit=trip、quantity=1，不得乘两人或重复计两辆车"})
 
     # Referenced activities/routes form one chronological chain per day.
     visiting, visited = set(), set()
@@ -275,6 +301,8 @@ def validate(trip, as_of=None):
             used_routes.add(rid)
             arrival = route_arrival(route)
             transport = maps["transports"].get(route["transport_id"])
+            if route["mode"] == "taxi" and (not transport or transport["mode"] != "taxi"):
+                warn("taxi_transport", rid, "打车路段尚未关联 taxi 交通记录；按一车规划，需补充单车费用、人数和接驳时间，兼容旧路线记录")
             if transport:
                 good = (route["from_place_id"] == transport["from_place_id"]
                         and route["to_place_id"] == transport["to_place_id"]
@@ -283,7 +311,8 @@ def validate(trip, as_of=None):
                 if arrival and transport["arrive_at"]:
                     good = good and arrival >= timestamp(transport["arrive_at"])
                 hard("transport_route", rid, "pass" if good else "violation", "日程路线必须保留关联交通安排的起终点和固定出发时间，抵达不能早于已知时刻")
-            verified = route["evidence"] == "verified" and sourced(route["source_ids"])
+            verified = (route["evidence"] == "verified" and sourced(route["source_ids"])
+                        and not (transport and transport.get("rail_reference")))
             hard("route_time", rid, "pass" if arrival and verified else "unknown", "路线耗时须可核验，导航链接不能替代耗时证据")
             if not route["navigation_url"]:
                 result["pending"].append({"code": "navigation", "target_id": rid, "message": "未取得可打开的导航入口"})
@@ -347,7 +376,9 @@ def validate(trip, as_of=None):
                     errors.append({"code": "exception_time", "target_id": did, "message": "例外抵达上限须为含时区的明确时间"})
             if hotel["latest_check_in"]:
                 cutoff = min(cutoff, timestamp(hotel["latest_check_in"]))
-            verified = final_route["evidence"] == "verified" and sourced(final_route["source_ids"])
+            final_transport = maps["transports"].get(final_route["transport_id"])
+            verified = (final_route["evidence"] == "verified" and sourced(final_route["source_ids"])
+                        and not (final_transport and final_transport.get("rail_reference")))
             if not arrival or not verified:
                 hard("hotel_arrival", did, "unknown", "返程耗时未知，不能断言早于酒店抵达上限")
             else:

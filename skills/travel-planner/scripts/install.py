@@ -31,7 +31,7 @@ def main():
         print(json.dumps({"ok": False, "message": str(error)}, ensure_ascii=False))
         return 2
     print(json.dumps({"ok": True, "skill_directory": str(destination),
-                      "next": "按 README 安装 Python 依赖，在 Codex Desktop 重新加载 Skill；真实数据另选私有目录"}, ensure_ascii=False))
+                      "next": "按 AGENT_HANDOFF.md 配置依赖与当前 Harness，确认 Skill 可发现；真实数据另选私有目录"}, ensure_ascii=False))
     return 0
 
 

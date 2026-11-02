@@ -16,6 +16,8 @@
 - 报价状态、费用完整性和真实支付分别保存。零元只用于确有依据的免费/不适用项。`cost_quote_ids` 是本次全部适用费用的去重清单，不能因为某项价格未知而从清单删除。
 - SourceRecord 保存 kind/provider/queried_at/conditions/url/reliable/note。mock 只能验证 mock 旅行中的逻辑；真实规划不接受 mock 作为核实证据。可靠性由 Codex 基于实际资料判断，不能仅因字段填写为 true 就宣称实际能力通过。
 - Decision 保存 kind、target_ids、summary、confirmed_by、confirmed_at、change_id、details。它是用户明确表达的记录；脚本不鉴别用户身份，也不能替代真实确认。已有记录不能删改。
+- 双人打车和铁路远期参考的新增枚举、可选字段、计费与证据映射见 [交通扩展](transport-planning.md)。打车单程整车价必须 trip × 1；参考日铁路不能通过目标日时刻硬约束。已有 1.0 文档仍可读取，无需批量改写。
+- 高德、铁路、滴滴和 RollingGo 酒店的真实调用顺序、单位/条件核验及现有实体映射见 [MCP 调用指南](mcp-usage.md)。`runtime.py mcp-routing` 离线显示路由；它不读取私人连接配置，也不证明服务已连接。业务 `query` 命令仍不自行请求供应商。
 
 ## 命令
 
@@ -67,6 +69,6 @@ required_approvals 列出的每个 kind/target 均须匹配。`confirmed` 要求
 
 私有目录下按 `trip-<id>` / `profile-<id>` 分隔，包含 HEAD.json、revisions、pending；旅行另有 outputs 和带 revision 的 OUTPUTS.json。revisions 内每个 bundle 包含 document 与 change（原因、前后版本、修改、影响和费用差异）。HEAD 保存 bundle 哈希；历史只追加，异常中断可能产生修订跳号。每次渲染均保留独立生成记录，同一 revision 的报价随时间过期时也可重新生成；output-status 同时核对数据版本、文件完整性及当前校验结果，旧输出不会被重新标为最新。
 
-外部适配协议为 CapabilityRequest(capability, conditions) → CapabilityResult(status, data_mode, queried_at, conditions, records, sources, failure_reason, limitations)。能力包括 maps/rail/hotels/rental/energy/attractions/weather。当前 ProvidedDataAdapter 只读取用户提供/模拟响应，不做网络请求，不自动把 records 导入主数据或提高证据等级。
+外部适配协议为 CapabilityRequest(capability, conditions) → CapabilityResult(status, data_mode, queried_at, conditions, records, sources, failure_reason, limitations)。能力包括 maps/rail/taxi/hotels/rental/energy/attractions/weather。当前 ProvidedDataAdapter 只读取用户提供/模拟响应，不做网络请求，不自动把 records 导入主数据或提高证据等级。
 
 响应文件为 `{"conditions":{…},"records":[…],"sources":[…]}`；条件不匹配返回 unavailable，记录或来源缺失返回 partial。未来供应商适配器需实现同一只读协议，并独立验证真实覆盖、费用、权限、时效和失败行为。

@@ -1,0 +1,55 @@
+# Skill orchestration policy, not a Codex connection/credential file.
+# Read by runtime.py mcp-routing and by the agent via references/mcp-usage.md.
+# Discover actual tools in the current chat before using any route.
+schema_version = 1
+reviewed_on = "2026-11-02"
+
+[policy]
+read_only = true
+discovery_is_business_verification = false
+max_parallel_queries = 1
+max_transient_retries = 1
+default_candidate_limit = 3
+automatic_background_refresh = false
+
+[services.travel_amap]
+transport = "http"
+capabilities = ["maps", "weather", "attraction_locations", "food_locations", "energy_locations"]
+tools = [
+  "maps_geo", "maps_regeocode", "maps_text_search", "maps_around_search",
+  "maps_search_detail", "maps_direction_driving", "maps_direction_walking",
+  "maps_direction_transit_integrated", "maps_distance", "maps_weather",
+]
+usage_reference = "references/mcp-usage.md#高德地点路线天气"
+
+[services.travel_rail]
+transport = "stdio"
+capabilities = ["rail", "rail_transfers"]
+# MCP wire names use hyphens; chat bindings may expose underscores. Discover them.
+tools = [
+  "get-current-date", "get-stations-code-in-city", "get-station-code-of-citys",
+  "get-station-code-by-names", "get-station-by-telecode", "get-tickets",
+  "get-interline-tickets", "get-train-route-stations",
+]
+usage_reference = "references/mcp-usage.md#铁路直达中转"
+
+[services.travel_didi]
+transport = "http"
+capabilities = ["taxi"]
+tools = ["maps_textsearch", "taxi_estimate"]
+usage_reference = "references/transport-planning.md#双人合乘一辆车"
+
+[services.travel_hotel]
+transport = "http"
+capabilities = ["hotels"]
+tools = ["getHotelSearchTags", "searchHotels", "getHotelDetail"]
+usage_reference = "references/mcp-usage.md#酒店搜索与房型复核"
+
+[gaps]
+attraction_access_and_tickets = "景区官方页面/预约渠道；原生搜索和浏览器核验"
+rental = "供应商官方网页/App或用户提供资料；自动挡/双驾驶员/保险/异地费另核实"
+huazhu_member_price = "华住官方渠道；第三方价格不视为用户会员价"
+live_charger_availability = "运营商官方渠道；地图POI不证明实时空闲或兼容"
+
+[excluded]
+travel_meituan = "本机配置已停用，不自动启用或作为酒店/票务兜底"

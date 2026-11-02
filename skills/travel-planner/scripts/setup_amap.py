@@ -10,6 +10,7 @@ import asyncio
 import getpass
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -20,15 +21,16 @@ import uuid
 import urllib.error
 import urllib.parse
 import urllib.request
+from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from travel_runtime import RuntimeConfigError as SetupError
 from travel_runtime.config import load_settings
-from travel_runtime.mcp import amap_settings, catalog, server_definition, server_launch
+from travel_runtime.mcp import amap_definition, amap_settings, catalog, server_definition, server_launch
 
 PACKAGE = catalog()["travel_amap"]["args"][-1]
-SETUP_VERSION = "5"
+SETUP_VERSION = "6"
 SERVER_NAME = "travel_amap"
 READ_TOOLS = catalog()[SERVER_NAME]["enabled_tools"]
 REQUIRED_TOOLS = {"maps_text_search", "maps_search_detail", "maps_direction_driving",
@@ -47,7 +49,11 @@ def stamp():
 
 
 def redact(text, key):
-    return str(text).replace(key, "[REDACTED]") if key else str(text)
+    result = str(text)
+    if key:
+        for secret in {key, urllib.parse.quote(key, safe=""), urllib.parse.quote_plus(key)}:
+            result = result.replace(secret, "[REDACTED]")
+    return result
 
 
 def read_key(prompt_key=False):
@@ -170,7 +176,8 @@ def checked_place(payload, expected_id, keyword, selected_name=None):
 
 
 def checked_route(payload, origin, destination):
-    route = payload.get("route", {})
+    # Hosted HTTP may return the route directly; stdio wraps it in "route".
+    route = payload.get("route", payload)
     def point(value):
         try:
             return tuple(map(float, value.split(",")))
@@ -229,63 +236,83 @@ async def business_checks(call, choose=None):
     return {"places": places, "routes": routes, "weather": weather}
 
 
-async def verify(key, npx, node, runtime=None):
-    from mcp import ClientSession, StdioServerParameters
-    from mcp.client.stdio import stdio_client
+@asynccontextmanager
+async def provider_streams(key, npx, node, runtime=None, transport="stdio"):
+    settings = amap_settings(npx, node, runtime)
+    definition = amap_definition(settings, transport=transport, credential=key)
+    if transport == "http":
+        import httpx
+        from mcp.client.streamable_http import streamable_http_client
+        # The official endpoint authenticates in the URL. Suppress SDK request logs
+        # while connected; errors and the final report are separately redacted.
+        previous = logging.root.manager.disable
+        logging.disable(logging.CRITICAL)
+        try:
+            async with httpx.AsyncClient(timeout=60, follow_redirects=False) as client:
+                async with streamable_http_client(definition["url"], http_client=client) as streams:
+                    yield streams[0], streams[1]
+        finally:
+            logging.disable(previous)
+    else:
+        from mcp import StdioServerParameters
+        from mcp.client.stdio import stdio_client
+        parameters = StdioServerParameters(command=definition["command"], args=definition["args"],
+                                           env=settings.child_environment(node, key))
+        with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as errors:
+            async with stdio_client(parameters, errlog=errors) as streams:
+                yield streams
+
+
+async def verify(key, npx, node, runtime=None, transport="stdio"):
+    from mcp import ClientSession
     from jsonschema import Draft202012Validator
 
     report = {"setup_tool_version": SETUP_VERSION, "provider": "amap", "package": PACKAGE, "started_at": stamp(),
-              "data_mode": "live", "passed": False, "checks": [], "tools": [],
+              "data_mode": "live", "transport": transport, "passed": False, "checks": [], "tools": [],
               "source": "https://lbs.amap.com/api/mcp-server/gettingstarted"}
-    settings = amap_settings(npx, node, runtime)
-    definition = server_definition(SERVER_NAME, settings, credential=key)
-    parameters = StdioServerParameters(command=definition["command"], args=definition["args"],
-                                       env=settings.child_environment(node, key))
     try:
-        # Provider/SDK stderr may include request URLs; never forward or persist it.
-        with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as errors:
-            async with stdio_client(parameters, errlog=errors) as (reader, writer):
-                async with ClientSession(reader, writer, read_timeout_seconds=timedelta(seconds=60)) as session:
-                    initialized = await session.initialize()
-                    report["server"] = initialized.serverInfo.model_dump()
-                    tools, cursor = {}, None
-                    seen_cursors = set()
-                    while True:
-                        listed = await session.list_tools(cursor=cursor)
-                        tools.update({t.name: t for t in listed.tools})
-                        cursor = listed.nextCursor
-                        if cursor is None:
-                            break
-                        if cursor in seen_cursors:
-                            raise SetupError("tools/list 返回重复游标")
-                        seen_cursors.add(cursor)
-                    report["tools"] = sorted(tools)
-                    if not REQUIRED_TOOLS <= tools.keys():
-                        raise SetupError("本次所需查询工具不完整")
+        async with provider_streams(key, npx, node, runtime, transport) as (reader, writer):
+            async with ClientSession(reader, writer, read_timeout_seconds=timedelta(seconds=60)) as session:
+                initialized = await session.initialize()
+                report["server"] = initialized.serverInfo.model_dump()
+                tools, cursor = {}, None
+                seen_cursors = set()
+                while True:
+                    listed = await session.list_tools(cursor=cursor)
+                    tools.update({t.name: t for t in listed.tools})
+                    cursor = listed.nextCursor
+                    if cursor is None:
+                        break
+                    if cursor in seen_cursors:
+                        raise SetupError("tools/list 返回重复游标")
+                    seen_cursors.add(cursor)
+                report["tools"] = sorted(tools)
+                if not REQUIRED_TOOLS <= tools.keys():
+                    raise SetupError("本次所需查询工具不完整")
 
-                    async def call(name, arguments):
-                        Draft202012Validator(tools[name].inputSchema).validate(arguments)
-                        result = await session.call_tool(name, arguments)
-                        texts = [c.text for c in result.content if getattr(c, "type", None) == "text"]
-                        if result.isError:
-                            raise SetupError("查询失败：" + name + "；" + " ".join(texts)[:300])
-                        payload = getattr(result, "structuredContent", None)
-                        if payload is None:
-                            try:
-                                payload = json.loads("\n".join(texts))
-                            except ValueError:
-                                raise SetupError("工具未返回可验证的 JSON 数据：" + name) from None
-                        if not isinstance(payload, dict):
-                            raise SetupError("工具结果结构不符合已审查版本：" + name)
-                        report["checks"].append({"tool": name, "arguments": arguments, "queried_at": stamp(),
-                                                 "result": payload})
-                        return payload
+                async def call(name, arguments):
+                    Draft202012Validator(tools[name].inputSchema).validate(arguments)
+                    result = await session.call_tool(name, arguments)
+                    texts = [c.text for c in result.content if getattr(c, "type", None) == "text"]
+                    if result.isError:
+                        raise SetupError("查询失败：" + name + "；" + " ".join(texts)[:300])
+                    payload = getattr(result, "structuredContent", None)
+                    if payload is None:
+                        try:
+                            payload = json.loads("\n".join(texts))
+                        except ValueError:
+                            raise SetupError("工具未返回可验证的 JSON 数据：" + name) from None
+                    if not isinstance(payload, dict):
+                        raise SetupError("工具结果结构不符合已审查版本：" + name)
+                    report["checks"].append({"tool": name, "arguments": arguments, "queried_at": stamp(),
+                                             "result": payload})
+                    return payload
 
-                    async def choose(keyword, candidates):
-                        return await asyncio.to_thread(choose_poi_locally, keyword, candidates)
+                async def choose(keyword, candidates):
+                    return await asyncio.to_thread(choose_poi_locally, keyword, candidates)
 
-                    report["business"] = await business_checks(call, choose)
-                    report["passed"] = True
+                report["business"] = await business_checks(call, choose)
+                report["passed"] = True
     except Exception as error:
         # ExceptionGroup/transport errors are surfaced without dumping SDK objects or headers.
         report["error"] = redact(error_message(error), key)[:1000]
@@ -312,12 +339,12 @@ async def verify(key, npx, node, runtime=None):
     return report
 
 
-def merged_config(existing, key, npx, node, tool_names, runtime=None):
+def merged_config(existing, key, npx, node, tool_names, runtime=None, transport="stdio"):
     import tomlkit
     document = tomlkit.parse(existing.decode("utf-8")) if existing else tomlkit.document()
     servers = document.setdefault("mcp_servers", tomlkit.table())
     settings = amap_settings(npx, node, runtime)
-    server = server_definition(SERVER_NAME, settings, tool_names=tool_names, credential=key)
+    server = amap_definition(settings, transport=transport, tool_names=tool_names, credential=key)
     server["enabled"] = True
     servers[SERVER_NAME] = server
     output = tomlkit.dumps(document).encode("utf-8")
@@ -325,9 +352,11 @@ def merged_config(existing, key, npx, node, tool_names, runtime=None):
     return output
 
 
-def apply_config(path, expected, report, key, npx, node, runtime=None):
+def apply_config(path, expected, report, key, npx, node, runtime=None, transport="stdio"):
     if report.get("passed") is not True or report.get("data_mode") != "live":
         raise SetupError("业务验证未通过，禁止写入配置")
+    if report.get("transport", "stdio") != transport:
+        raise SetupError("验证与配置的 transport 不一致，禁止写入")
     path = Path(path).expanduser()
     if path.is_symlink():
         raise SetupError("配置文件是符号链接，需先人工确认实际目标")
@@ -335,7 +364,7 @@ def apply_config(path, expected, report, key, npx, node, runtime=None):
     for parent in (path.parent, *path.parent.parents):
         if (parent / ".git").is_file() or (parent / ".git/HEAD").exists():
             raise SetupError("带 Key 的配置不能写入 Git 仓库")
-    output = merged_config(expected, key, npx, node, report["tools"], runtime)
+    output = merged_config(expected, key, npx, node, report["tools"], runtime, transport)
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     lock = path.with_name(path.name + ".travel-amap.lock")
     try:
@@ -373,6 +402,7 @@ def apply_config(path, expected, report, key, npx, node, runtime=None):
 
 def main():
     parser = argparse.ArgumentParser(description="本机高德 MCP：真实测试通过后，才写入私有 Codex 配置")
+    parser.add_argument("--transport", choices=("stdio", "http"), default="stdio", help="http 无需 Node；两种方式均须真实业务验证")
     parser.add_argument("--apply", action="store_true", help="业务验证通过后备份并写入配置；默认只测试")
     parser.add_argument("--prompt-key", action="store_true", help="始终在本机输入 Key，忽略已有 AMAP_MAPS_API_KEY")
     parser.add_argument("--runtime-config", type=Path, help="本机运行配置；不同于 Codex config.toml")
@@ -386,7 +416,8 @@ def main():
             __import__(module)
         settings = load_settings(args.runtime_config)
         npx, node = settings.npx, settings.node
-        server_launch(npx, node, settings.platform, npx_cli=settings.npx_cli)
+        if args.transport == "stdio":
+            server_launch(npx, node, settings.platform, npx_cli=settings.npx_cli)
         path = args.config.expanduser() if args.config else settings.codex_config
         if args.report:
             if args.report.expanduser().resolve() == path.resolve():
@@ -397,11 +428,11 @@ def main():
         if existing:
             tomllib.loads(existing.decode("utf-8"))
         key, credential_source = read_key(args.prompt_key)
-        report = asyncio.run(asyncio.wait_for(verify(key, npx, node, settings), timeout=240))
+        report = asyncio.run(asyncio.wait_for(verify(key, npx, node, settings, args.transport), timeout=240))
         report["credential_source"] = credential_source
         report["configuration_written"] = False
         if args.apply and report["passed"]:
-            report["configuration"] = apply_config(path, existing, report, key, npx, node, settings)
+            report["configuration"] = apply_config(path, existing, report, key, npx, node, settings, args.transport)
             report["configuration_written"] = True
             report["next"] = "完全退出并重开 Codex；新聊天复测工具可见性与真实查询"
         safe = redact(json.dumps(report, ensure_ascii=False, indent=2), key)

@@ -1,6 +1,13 @@
-# Shared server definitions for ALL platforms; no real credentials.
+# Portable installation templates for Amap/rail; no real credentials.
+# NOT a snapshot of the user's active deployment. Current agent orchestration:
+# config/mcp-routing.toml (also includes hosted Didi and RollingGo hotel).
 # runtime.py mcp-config resolves native launch paths for the current machine.
 # Never replace your entire private Codex config with this file.
+
+[amap_http]
+# Official hosted transport. No Node/npm install or local map process.
+# Credential is inserted only into the private Codex config after live checks.
+url = "https://mcp.amap.com/mcp"
 
 [mcp_servers.travel_amap]
 command = "npx"

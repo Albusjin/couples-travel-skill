@@ -1,0 +1,27 @@
+# Universal distribution template; merge selected tables into private config.toml.
+# All connections start disabled. Read references/harness-setup.md first.
+# REPLACE_LOCALLY is a placeholder, not shell/environment interpolation.
+
+[mcp_servers.travel_amap]
+url = "https://mcp.amap.com/mcp?key=REPLACE_LOCALLY"
+enabled = false
+enabled_tools = ["maps_geo", "maps_regeocode", "maps_text_search", "maps_around_search", "maps_search_detail", "maps_direction_driving", "maps_direction_walking", "maps_direction_transit_integrated", "maps_distance", "maps_weather"]
+
+[mcp_servers.travel_rail]
+command = "npx"
+args = ["-y", "12306-mcp@0.3.10"]
+enabled = false
+startup_timeout_sec = 60
+tool_timeout_sec = 60
+enabled_tools = ["get-current-date", "get-stations-code-in-city", "get-station-code-of-citys", "get-station-code-by-names", "get-station-by-telecode", "get-tickets", "get-interline-tickets", "get-train-route-stations"]
+
+[mcp_servers.travel_didi]
+url = "https://mcp.didichuxing.com/mcp-servers?key=REPLACE_LOCALLY"
+enabled = false
+enabled_tools = ["maps_textsearch", "taxi_estimate"]
+
+[mcp_servers.travel_hotel]
+url = "https://mcp.rollinggo.cn/mcp"
+bearer_token_env_var = "ROLLINGGO_API_KEY"
+enabled = false
+enabled_tools = ["getHotelSearchTags", "searchHotels", "getHotelDetail"]

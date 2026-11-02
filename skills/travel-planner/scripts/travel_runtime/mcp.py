@@ -5,6 +5,7 @@ import sys
 import tomllib
 from dataclasses import replace
 from pathlib import Path
+from urllib.parse import urlencode
 
 from . import RuntimeConfigError
 from .config import SKILL_ROOT, load_settings
@@ -12,6 +13,26 @@ from .config import SKILL_ROOT, load_settings
 
 def catalog():
     return tomllib.loads((SKILL_ROOT / "config/mcp-servers.toml").read_text(encoding="utf-8"))["mcp_servers"]
+
+
+def routing_manifest():
+    """Read agent routing only; never inspect private Codex config or start MCPs."""
+    return tomllib.loads((SKILL_ROOT / "config/mcp-routing.toml").read_text(encoding="utf-8"))
+
+
+def amap_definition(settings, *, transport="stdio", tool_names=None, credential=None):
+    if transport == "stdio":
+        return server_definition("travel_amap", settings, tool_names=tool_names, credential=credential)
+    if transport != "http":
+        raise RuntimeConfigError("高德 transport 仅支持 http 或 stdio")
+    shared = catalog()["travel_amap"]
+    endpoint = tomllib.loads((SKILL_ROOT / "config/mcp-servers.toml").read_text(encoding="utf-8"))["amap_http"]["url"]
+    tools = shared["enabled_tools"]
+    return {"url": endpoint + ("?" + urlencode({"key": credential}) if credential else ""),
+            "enabled": credential is not None,
+            "startup_timeout_sec": shared["startup_timeout_sec"],
+            "tool_timeout_sec": shared["tool_timeout_sec"],
+            "enabled_tools": [name for name in tools if tool_names is None or name in tool_names]}
 
 
 def server_launch(npx, node, platform=None, *, package=None, npx_cli=None, arguments=None):
