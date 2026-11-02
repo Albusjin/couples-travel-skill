@@ -11,3 +11,4 @@ private/
 travel-data/
 *.local.json
 *.local.md
+*.local.toml

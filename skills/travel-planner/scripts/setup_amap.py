@@ -13,7 +13,6 @@ import json
 import math
 import os
 import re
-import shutil
 import sys
 import tempfile
 import tomllib
@@ -24,18 +23,16 @@ import urllib.request
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-PACKAGE = "@amap/amap-maps-mcp-server@0.0.8"
-SETUP_VERSION = "4"
+from travel_runtime import RuntimeConfigError as SetupError
+from travel_runtime.config import load_settings
+from travel_runtime.mcp import amap_settings, catalog, server_definition, server_launch
+
+PACKAGE = catalog()["travel_amap"]["args"][-1]
+SETUP_VERSION = "5"
 SERVER_NAME = "travel_amap"
-READ_TOOLS = ["maps_geo", "maps_regeocode", "maps_text_search", "maps_around_search",
-              "maps_search_detail", "maps_direction_driving", "maps_direction_walking",
-              "maps_direction_transit_integrated", "maps_distance", "maps_weather"]
+READ_TOOLS = catalog()[SERVER_NAME]["enabled_tools"]
 REQUIRED_TOOLS = {"maps_text_search", "maps_search_detail", "maps_direction_driving",
                   "maps_direction_walking", "maps_weather"}
-
-
-class SetupError(Exception):
-    pass
 
 
 class PlaceSelectionError(SetupError):
@@ -98,18 +95,6 @@ def error_message(error):
     if isinstance(error, BaseExceptionGroup):
         return "; ".join(error_message(item) for item in error.exceptions)
     return str(error)
-
-
-def server_launch(npx, node, platform=None):
-    """Use a native executable on Windows; do not pass .cmd files to CreateProcess."""
-    if (platform or sys.platform) != "win32" or Path(npx).suffix.lower() == ".exe":
-        return npx, ["-y", PACKAGE]
-    candidates = [Path(npx).resolve().parent / "node_modules/npm/bin/npx-cli.js",
-                  Path(node).resolve().parent / "node_modules/npm/bin/npx-cli.js"]
-    for candidate in candidates:
-        if candidate.is_file():
-            return node, [str(candidate), "-y", PACKAGE]
-    raise SetupError("找不到 Windows npx-cli.js；请安装官方 Node.js 24 LTS（含 npm），并重新打开终端")
 
 
 def positive(value):
@@ -244,7 +229,7 @@ async def business_checks(call, choose=None):
     return {"places": places, "routes": routes, "weather": weather}
 
 
-async def verify(key, npx, node):
+async def verify(key, npx, node, runtime=None):
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
     from jsonschema import Draft202012Validator
@@ -252,14 +237,10 @@ async def verify(key, npx, node):
     report = {"setup_tool_version": SETUP_VERSION, "provider": "amap", "package": PACKAGE, "started_at": stamp(),
               "data_mode": "live", "passed": False, "checks": [], "tools": [],
               "source": "https://lbs.amap.com/api/mcp-server/gettingstarted"}
-    safe_names = ("PATH", "HOME", "USERPROFILE", "SYSTEMROOT", "WINDIR", "TMPDIR", "TEMP", "TMP",
-                  "APPDATA", "LOCALAPPDATA", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY",
-                  "http_proxy", "https_proxy", "no_proxy", "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR")
-    env = {name: os.environ[name] for name in safe_names if name in os.environ}
-    env["PATH"] = str(Path(node).parent) + os.pathsep + env.get("PATH", "")
-    env["AMAP_MAPS_API_KEY"] = key
-    command, arguments = server_launch(npx, node)
-    parameters = StdioServerParameters(command=command, args=arguments, env=env)
+    settings = amap_settings(npx, node, runtime)
+    definition = server_definition(SERVER_NAME, settings, credential=key)
+    parameters = StdioServerParameters(command=definition["command"], args=definition["args"],
+                                       env=settings.child_environment(node, key))
     try:
         # Provider/SDK stderr may include request URLs; never forward or persist it.
         with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as errors:
@@ -331,26 +312,20 @@ async def verify(key, npx, node):
     return report
 
 
-def merged_config(existing, key, npx, node, tool_names):
+def merged_config(existing, key, npx, node, tool_names, runtime=None):
     import tomlkit
     document = tomlkit.parse(existing.decode("utf-8")) if existing else tomlkit.document()
     servers = document.setdefault("mcp_servers", tomlkit.table())
-    server = tomlkit.table()
-    command, arguments = server_launch(npx, node)
-    server.update({"command": command, "args": arguments, "enabled": True,
-                   "startup_timeout_sec": 45, "tool_timeout_sec": 60,
-                   "enabled_tools": [name for name in READ_TOOLS if name in tool_names]})
-    environment = tomlkit.table()
-    environment["AMAP_MAPS_API_KEY"] = key
-    environment["PATH"] = str(Path(node).parent) + os.pathsep + os.environ.get("PATH", "")
-    server["env"] = environment
+    settings = amap_settings(npx, node, runtime)
+    server = server_definition(SERVER_NAME, settings, tool_names=tool_names, credential=key)
+    server["enabled"] = True
     servers[SERVER_NAME] = server
     output = tomlkit.dumps(document).encode("utf-8")
     tomllib.loads(output.decode("utf-8"))
     return output
 
 
-def apply_config(path, expected, report, key, npx, node):
+def apply_config(path, expected, report, key, npx, node, runtime=None):
     if report.get("passed") is not True or report.get("data_mode") != "live":
         raise SetupError("业务验证未通过，禁止写入配置")
     path = Path(path).expanduser()
@@ -360,7 +335,7 @@ def apply_config(path, expected, report, key, npx, node):
     for parent in (path.parent, *path.parent.parents):
         if (parent / ".git").is_file() or (parent / ".git/HEAD").exists():
             raise SetupError("带 Key 的配置不能写入 Git 仓库")
-    output = merged_config(expected, key, npx, node, report["tools"])
+    output = merged_config(expected, key, npx, node, report["tools"], runtime)
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     lock = path.with_name(path.name + ".travel-amap.lock")
     try:
@@ -400,7 +375,8 @@ def main():
     parser = argparse.ArgumentParser(description="本机高德 MCP：真实测试通过后，才写入私有 Codex 配置")
     parser.add_argument("--apply", action="store_true", help="业务验证通过后备份并写入配置；默认只测试")
     parser.add_argument("--prompt-key", action="store_true", help="始终在本机输入 Key，忽略已有 AMAP_MAPS_API_KEY")
-    parser.add_argument("--config", type=Path, default=Path.home() / ".codex/config.toml")
+    parser.add_argument("--runtime-config", type=Path, help="本机运行配置；不同于 Codex config.toml")
+    parser.add_argument("--config", type=Path, help="Codex 配置路径；优先于 CODEX_HOME/运行配置")
     parser.add_argument("--report", type=Path, help="可选：保存脱敏验证结果到本机私有目录")
     args = parser.parse_args()
     key = ""
@@ -408,10 +384,10 @@ def main():
     try:
         for module in ("mcp", "tomlkit", "jsonschema"):
             __import__(module)
-        npx, node = shutil.which("npx"), shutil.which("node")
-        if not npx or not node:
-            raise SetupError("本机缺少 node/npx；请先安装 Node.js 24 LTS")
-        path = args.config.expanduser()
+        settings = load_settings(args.runtime_config)
+        npx, node = settings.npx, settings.node
+        server_launch(npx, node, settings.platform, npx_cli=settings.npx_cli)
+        path = args.config.expanduser() if args.config else settings.codex_config
         if args.report:
             if args.report.expanduser().resolve() == path.resolve():
                 raise SetupError("报告路径不能与配置路径相同")
@@ -421,13 +397,13 @@ def main():
         if existing:
             tomllib.loads(existing.decode("utf-8"))
         key, credential_source = read_key(args.prompt_key)
-        report = asyncio.run(asyncio.wait_for(verify(key, npx, node), timeout=240))
+        report = asyncio.run(asyncio.wait_for(verify(key, npx, node, settings), timeout=240))
         report["credential_source"] = credential_source
         report["configuration_written"] = False
         if args.apply and report["passed"]:
-            report["configuration"] = apply_config(path, existing, report, key, npx, node)
+            report["configuration"] = apply_config(path, existing, report, key, npx, node, settings)
             report["configuration_written"] = True
-            report["next"] = "完全退出并重开 Codex（macOS 可用 Cmd+Q）；新聊天复测工具可见性与真实查询"
+            report["next"] = "完全退出并重开 Codex；新聊天复测工具可见性与真实查询"
         safe = redact(json.dumps(report, ensure_ascii=False, indent=2), key)
         if args.report:
             target = args.report.expanduser()

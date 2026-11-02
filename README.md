@@ -10,6 +10,7 @@
 - [外部能力记录](docs/capability-verification-v1.md)：实际查询与模拟测试分别记录。
 - [完整 MCP 选型清单](docs/mcp-selection-v1.md)：覆盖地图、铁路、酒店、网页核验、可选搜索及租车/补能缺口。
 - [macOS / Windows MCP 接入指南](skills/travel-planner/references/mcp-setup.md)：候选筛选、真实协议实测、双平台启动工具、Key 设置和本机验收步骤。
+- [Windows / macOS 系统迁移与配置清单](skills/travel-planner/references/system-migration.md)：配置优先级、Python/Node 路径、环境变量、MCP 生成、数据迁移和回滚；共用一份 Skill 和业务代码。
 
 快速验证（不保存真实数据）：
 

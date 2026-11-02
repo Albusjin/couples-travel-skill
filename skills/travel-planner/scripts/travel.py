@@ -3,9 +3,11 @@
 
 import argparse
 import json
-import os
 import sys
 from dataclasses import asdict
+
+from travel_runtime import RuntimeConfigError
+from travel_runtime.config import load_settings
 
 try:
     from travel_planner.capabilities import CAPABILITIES, CapabilityRequest, ProvidedDataAdapter
@@ -20,7 +22,8 @@ except ModuleNotFoundError as error:
 
 def parser():
     root = argparse.ArgumentParser(description="Travel Planner V1 本地结构化数据工具")
-    root.add_argument("--data-dir", default=os.environ.get("TRAVEL_PLANNER_DATA_DIR"), help="用户指定的仓库外私有目录")
+    root.add_argument("--runtime-config", help="可选本机运行配置 TOML")
+    root.add_argument("--data-dir", help="用户指定的仓库外私有目录；优先于运行配置")
     sub = root.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init")
     init.add_argument("trip_id")
@@ -117,13 +120,16 @@ def execute(args):
 
 def main(argv=None):
     try:
-        result, status = execute(parser().parse_args(argv))
+        args = parser().parse_args(argv)
+        settings = load_settings(args.runtime_config)
+        args.data_dir = args.data_dir or settings.data_dir
+        result, status = execute(args)
         print(json.dumps({"ok": status == 0, "result": result}, ensure_ascii=False, indent=2))
         return status
     except PlannerError as error:
         print(json.dumps({"ok": False, "error": error.as_dict()}, ensure_ascii=False, indent=2))
         return 2
-    except (OSError, ValueError, TypeError, KeyError) as error:
+    except (OSError, ValueError, TypeError, KeyError, RuntimeConfigError) as error:
         print(json.dumps({"ok": False, "error": {"code": "input_or_io", "message": str(error)}}, ensure_ascii=False, indent=2))
         return 2
 

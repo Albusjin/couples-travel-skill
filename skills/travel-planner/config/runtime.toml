@@ -1,0 +1,24 @@
+# Shared runtime defaults. Machine-specific changes belong in runtime.local.toml.
+[paths]
+codex_home = "{home}/.codex"
+skill_destination = "{home}/.agents/skills/travel-planner"
+data_dir = "" # No default private travel directory.
+
+[executables]
+python = "" # Empty means the interpreter running runtime.py.
+node = "" # Empty means discover from PATH.
+npx = ""
+npx_cli = "" # Optional explicit npm/bin/npx-cli.js, for version managers.
+
+[environment]
+PYTHONUTF8 = "1"
+PYTHONIOENCODING = "utf-8"
+
+[platforms.darwin.paths]
+venv_dir = "{home}/Library/Application Support/TravelPlanner/amap-setup-venv"
+
+[platforms.win32.paths]
+venv_dir = "{local_app_data}/TravelPlanner/amap-setup-venv"
+
+[platforms.linux.paths]
+venv_dir = "{home}/.local/share/TravelPlanner/amap-setup-venv"

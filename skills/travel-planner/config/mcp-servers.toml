@@ -1,7 +1,6 @@
-# Merge these tables into your PRIVATE ~/.codex/config.toml. Do not replace it.
-# Node 24 LTS is recommended. On macOS, ensure the app can find node and npx.
-# This template contains NO real credentials. Inject the Key into the app process,
-# or add a private [mcp_servers.travel_amap.env] table as documented in mcp-setup.md.
+# Shared server definitions for ALL platforms; no real credentials.
+# runtime.py mcp-config resolves native launch paths for the current machine.
+# Never replace your entire private Codex config with this file.
 
 [mcp_servers.travel_amap]
 command = "npx"

@@ -2,6 +2,8 @@
 
 初次核对日期：2026-11-01。提供 macOS / Windows 独立启动器；云端 Linux 的协议与模拟测试不等于实际电脑已配置。用户本机高德 v4 报告截图已显示 `data_mode=live`、`passed=true`，仅证明辅助工具限定的杭州地点、驾车/步行和近期天气检查；配置写入与重启后 Codex 加载尚待确认。两台电脑的 MCP 配置、Node 安装和凭证都需分别处理，不自动同步真实旅行数据。
 
+运行层重构版使用一份 [MCP 服务定义](../config/mcp-servers.toml) 和 `scripts/runtime.py` 共用入口。默认路径、Python/Node/npm 覆盖、代理与证书配置、跨系统迁移步骤详见 [系统迁移指南](system-migration.md)。以下真实能力记录保留原测试版本与日期；当前辅助工具版本为 v5，重构未代替新的业务验收。
+
 ## 1. 先接入什么
 
 | 候选 | 来源/用途 | 本次实测 | 决定 |
@@ -52,9 +54,9 @@ python3 -m venv .venv
 .venv/bin/python skills/travel-planner/scripts/setup_amap.py --apply
 ```
 
-macOS 也可在本机终端运行 `bash skills/travel-planner/scripts/setup-amap.command`。启动器检查 Python 3.11+ 和 Node 22.14+，在本机 `~/Library/Application Support/TravelPlanner/amap-setup-venv` 创建独立依赖环境，随后运行同一测试工具；不会预先写入 MCP 配置。
+macOS 也可在本机终端运行 `bash skills/travel-planner/scripts/setup-amap.command`。薄启动器转交共用 `runtime.py` 检查与安装流程，默认在本机 `~/Library/Application Support/TravelPlanner/amap-setup-venv` 创建独立依赖环境；不会预先写入 MCP 配置。目录可通过本机运行配置覆盖。
 
-Windows 使用 `scripts/setup-amap.cmd`：解压后双击，或在命令提示符运行。启动器检查 Python 3.11+（优先 `py -3`，其次 `python.exe`）及 Node 22.14+，在 `%LOCALAPPDATA%\TravelPlanner\amap-setup-venv` 创建独立依赖环境。默认配置路径为 `%USERPROFILE%\.codex\config.toml`，Key 仍在 Python 本机隐藏提示中输入，不进入批处理参数。
+Windows 使用 `scripts/setup-amap.cmd`：解压后双击，或在命令提示符运行。启动器找到初始 Python（可用 `TRAVEL_PLANNER_PYTHON` 指定，否则优先 `py -3`，其次 `python.exe`），随后转交同一 `runtime.py` 流程，默认在 `%LOCALAPPDATA%\TravelPlanner\amap-setup-venv` 创建独立依赖环境。默认配置路径为 `%USERPROFILE%\.codex\config.toml`；`CODEX_HOME` 或本机运行配置可覆盖。Key 仍在 Python 本机隐藏提示中输入，不进入批处理参数。
 
 Windows 下测试与最终 MCP 配置都使用 node.exe 执行 npm 的 npx-cli.js，避免把 npx.cmd 直接交给原生进程启动器；官方 Node 安装包的常规目录受支持，缺少 npm 文件时明确失败。Windows 文件访问权限使用用户目录的 NTFS ACL，不能将 POSIX 的 0600 描述当成 Windows 权限保证。无需修改 PowerShell 执行策略，也不要求管理员权限。
 
@@ -72,7 +74,7 @@ Windows 下测试与最终 MCP 配置都使用 node.exe 执行 npm 的 npx-cli.j
 
 ### 手工配置参考
 
-配置文件为本机 `~/.codex/config.toml`。先备份已有文件，再合并 [macOS 配置模板](../examples/mcp-config.macOS.toml) 的两个表；不要覆盖已有模型、项目或其他 MCP 配置。同名表已存在时修改原表，不要重复添加。配置是 TOML，不是 Cursor 的 `mcpServers` JSON。
+配置文件默认是本机 `~/.codex/config.toml`，自定义时遵循 `CODEX_HOME` / `paths.codex_home`。在 Skill 目录运行 `python3 scripts/runtime.py mcp-config`（Windows 初始命令为 `py -3`）从 [共用定义](../config/mcp-servers.toml) 生成目标机 TOML。先备份已有文件，再合并生成的两个表；不要覆盖已有模型、项目或其他 MCP 配置。同名表已存在时修改原表，不要重复添加。生成命令不会写入 Codex 配置；输出仍需在本机保管，可能含 PATH 和代理配置。配置是 TOML，不是 Cursor 的 `mcpServers` JSON。
 
 最小高德配置如下，工具白名单建议使用完整模板：
 
@@ -159,7 +161,7 @@ enabled = true
 
 把本机验收摘要另存到用户私有目录；公共仓库只能保存匿名公共地点的脱敏测试摘要，不上传 Key、完整订单或真实私人行程。若这仍是云任务，必须先确认所需 MCP 在该聊天中可见，不能因本机配置过就假设云执行器能访问本地服务。
 
-另一台电脑需要独立安装 Node、合并配置和配置自己的 Key/AK。建议每台设备单独 Key，便于撤销与排错；配额仍按提供商账号规则计算。若另一台是 Windows，要按其实际 npx/node 路径及环境注入方式调整，不能直接复制 Mac 的绝对路径。两台电脑的旅行主数据仍应分别指定私有位置，本次不自动建立云同步或公开发布。
+另一台电脑需要独立安装 Node、合并配置和配置自己的 Key/AK。建议每台设备单独 Key，便于撤销与排错；配额仍按提供商账号规则计算。复用同一 Skill 和服务定义，在目标机运行配置中填写实际 Python/Node/npm 路径，再由共用运行层生成命令，不能直接复制旧机绝对路径。完整步骤见 [系统迁移指南](system-migration.md)。两台电脑的旅行主数据仍应分别指定私有位置，本次不自动建立云同步或公开发布。
 
 ## 7. 可选远程高德 / 百度
 

@@ -2,11 +2,22 @@
 
 可复制安装的 Codex Desktop Skill。Codex 负责中文需求理解和研究，Python 核心负责数据、校验、预算、版本与 Markdown。真实查询可由 Codex 编排另行配置的 MCP；本地 CLI 不内置供应商 SDK。核心无需账号；地图服务需本机 Key/AK。无自动下单、支付或发布。
 
-已筛选高德官方 MCP（首选）、百度官方 MCP（备用）及社区 12306 MCP（待本机复测）。高德/百度真实进程的协议与工具发现已部分通过；用户本机高德 v4 截图显示限定的地点、驾车/步行和近期天气测试通过，配置写入与 Codex 内加载仍待确认。百度业务、真实房价及租车库存尚无验收通过结论。详见 [macOS / Windows MCP 配置与实测指南](references/mcp-setup.md) 和 [无凭证配置模板](examples/mcp-config.macOS.toml)。
+已筛选高德官方 MCP（首选）、百度官方 MCP（备用）及社区 12306 MCP（待本机复测）。高德/百度真实进程的协议与工具发现已部分通过；用户本机高德 v4 截图显示限定的地点、驾车/步行和近期天气测试通过，配置写入与 Codex 内加载仍待确认。百度业务、真实房价及租车库存尚无验收通过结论。详见 [MCP 配置与实测指南](references/mcp-setup.md) 和 [共用服务定义](config/mcp-servers.toml)。
 
 高德本机辅助工具 `scripts/setup_amap.py --apply` 可在用户完成开发者注册并创建 Web 服务 Key 后，先执行真实地点/路线/天气测试，通过后才备份并合并 Codex 配置。需额外安装 `requirements-amap-setup.txt`；Key 在本机输入，步骤见接入指南。
 
-已提供 macOS 启动器 `scripts/setup-amap.command` 和 Windows 启动器 `scripts/setup-amap.cmd`；两者共用 Python 校验与条件写入逻辑，使用各自用户目录下的独立依赖环境。Windows 适配原生 node.exe + npx-cli.js 启动，目录含空格也按独立参数处理。
+`SKILL.md`、模型、预算和校验各维护一份。`scripts/runtime.py` 统一负责依赖安装、启动、诊断和 MCP 配置生成；系统差异集中在 `config/runtime.toml` 和 `scripts/travel_runtime/`。两个系统的高德启动器仅负责找到初始 Python 并转交运行层，不再分别实现依赖安装。具体迁移步骤与完整配置表见 [Windows / macOS 系统迁移指南](references/system-migration.md)。
+
+可复制 `config/runtime.local.example.toml` 为本机 `config/runtime.local.toml`，覆盖 Python/Node 路径、私有数据目录、Codex 目录等。该文件被 Git 和复制安装器排除；不含机器路径的共用文件可直接复用。配置后使用以下入口（macOS 初始命令为 `python3`，Windows 为 `py -3`；以下用 `python3` 示意）：
+
+```sh
+python3 scripts/runtime.py bootstrap
+python3 scripts/runtime.py doctor
+python3 scripts/runtime.py run validate --input examples/demo-trip.json
+python3 scripts/runtime.py mcp-config
+```
+
+以上从 Skill 目录执行。`mcp-config` 仅输出本机无 API Key 的 TOML，不写 Codex 文件；高德仍须真实测试通过后才由 `setup-amap --apply` 合并。完整 MCP 辅助依赖由 `bootstrap` 安装，只需离线业务核心时可用 `bootstrap --core-only`。
 
 ## 安装
 

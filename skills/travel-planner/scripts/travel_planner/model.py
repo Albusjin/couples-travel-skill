@@ -13,7 +13,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from . import SCHEMA_VERSION
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
-SCHEMA = json.loads((PACKAGE_ROOT / "schemas/model-v1.schema.json").read_text())
+SCHEMA = json.loads((PACKAGE_ROOT / "schemas/model-v1.schema.json").read_text(encoding="utf-8"))
 FORMATS = FormatChecker()
 DEFAULTS = {
     "travelers": 2, "planned_drivers": 2, "hotel_room_type": "double",

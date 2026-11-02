@@ -1,0 +1,18 @@
+# Copy to runtime.local.toml on THIS machine. Do not put API keys here.
+# Absolute Windows paths can use forward slashes, or TOML literal single quotes.
+# Relative paths resolve from the selected local configuration's directory.
+[paths]
+# codex_home = "D:/Private/Codex"
+# skill_destination = "D:/Tools/skills/travel-planner"
+# venv_dir = "D:/Tools/TravelPlanner/venv"
+# data_dir = "D:/Private/TravelPlanner/data"
+
+[executables]
+# python = "C:/Program Files/Python313/python.exe"
+# node = "C:/Program Files/nodejs/node.exe"
+# npx = "C:/Program Files/nodejs/npx.cmd"
+# npx_cli = "C:/Program Files/nodejs/node_modules/npm/bin/npx-cli.js"
+
+[environment]
+# HTTPS_PROXY = "http://127.0.0.1:7890"
+# NODE_EXTRA_CA_CERTS = "D:/Certificates/company-ca.pem"

@@ -7,18 +7,26 @@ import shutil
 import sys
 from pathlib import Path
 
+from travel_runtime import RuntimeConfigError
+from travel_runtime.config import load_settings
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--destination", type=Path, default=Path.home() / ".agents/skills/travel-planner")
+    parser.add_argument("--runtime-config", type=Path)
+    parser.add_argument("--destination", type=Path)
     args = parser.parse_args()
-    destination = args.destination.expanduser().absolute()
+    try:
+        destination = (args.destination or load_settings(args.runtime_config).skill_destination).expanduser().absolute()
+    except RuntimeConfigError as error:
+        print(json.dumps({"ok": False, "message": str(error)}, ensure_ascii=False))
+        return 2
     source = Path(__file__).resolve().parents[1]
     if destination.exists() or destination.is_symlink() or destination.resolve().is_relative_to(source):
         print(json.dumps({"ok": False, "message": "目标已存在或位于源目录内；请选新目录，不自动覆盖"}, ensure_ascii=False))
         return 2
     try:
-        shutil.copytree(source, destination, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".venv"))
+        shutil.copytree(source, destination, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".venv", "*.local.toml"))
     except OSError as error:
         print(json.dumps({"ok": False, "message": str(error)}, ensure_ascii=False))
         return 2

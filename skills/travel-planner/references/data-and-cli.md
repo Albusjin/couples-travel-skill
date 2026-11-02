@@ -1,6 +1,6 @@
 # 数据契约与 CLI
 
-运行 `python3 <skill目录>/scripts/travel.py --help`。命令返回 UTF-8 JSON：成功为 `{"ok":true,"result":…}`，错误为 `{"ok":false,"error":…}`；结构/事务错误退出码 2。`validate` 的错误在 `result.errors`；规划问题不以非零退出码表示，必须检查 `can_confirm` 与三态列表。
+使用本机 Python 3.11+ 执行 `<skill目录>/scripts/runtime.py run --help`，由运行层选择配置的虚拟环境；原 `scripts/travel.py` 仍可用。Python 名称及系统迁移设置见 [系统迁移指南](system-migration.md)。`--data-dir` 和 `--runtime-config` 放在业务子命令前。命令返回 UTF-8 JSON：成功为 `{"ok":true,"result":…}`，错误为 `{"ok":false,"error":…}`；结构/事务错误退出码 2。`validate` 的错误在 `result.errors`；规划问题不以非零退出码表示，必须检查 `can_confirm` 与三态列表。
 
 ## 数据
 

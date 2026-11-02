@@ -10,6 +10,8 @@
 
 ## 已确认决定
 
+2026-11-02 按用户要求将操作系统差异集中到 `config/runtime.toml` 与 `scripts/travel_runtime/`，用 `scripts/runtime.py` 统一安装、启动与诊断。MCP 定义共用 `config/mcp-servers.toml`，高德实测与配置写入复用同一命令生成逻辑。`SKILL.md`、模型、预算、校验和修订存储不区分 Windows/macOS；业务规则与 Schema 版本不变。迁移配置、优先级与回滚详见 [系统迁移指南](../skills/travel-planner/references/system-migration.md)。
+
 | 问题 | 实施决定 |
 | --- | --- |
 | 首轮范围 | 核心闭环、确定性脚本、Markdown、模拟验收；真实工具单独验证 |
