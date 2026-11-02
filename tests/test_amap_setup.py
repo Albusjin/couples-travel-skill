@@ -178,8 +178,12 @@ class PlatformLaunchChecks(unittest.TestCase):
             cli.parent.mkdir(parents=True)
             cli.write_text("// synthetic fixture")
             node, npx = str(node_dir / "node.exe"), str(node_dir / "npx.cmd")
-            self.assertEqual(setup.server_launch(npx, node, "win32"),
-                             (node, [str(cli), "-y", setup.PACKAGE]))
+            command, arguments = setup.server_launch(npx, node, "win32")
+            self.assertEqual(command, node)
+            # Windows may expand an 8.3 TEMP path to its long spelling.
+            # Check file identity while retaining a separate path argument.
+            self.assertTrue(Path(arguments[0]).samefile(cli))
+            self.assertEqual(arguments[1:], ["-y", setup.PACKAGE])
 
     def test_missing_windows_npm_fails_before_config_write(self):
         with tempfile.TemporaryDirectory() as folder:
