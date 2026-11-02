@@ -1,0 +1,43 @@
+# Merge these tables into your PRIVATE ~/.codex/config.toml. Do not replace it.
+# Node 24 LTS is recommended. On macOS, ensure the app can find node and npx.
+# This template contains NO real credentials. Inject the Key into the app process,
+# or add a private [mcp_servers.travel_amap.env] table as documented in mcp-setup.md.
+
+[mcp_servers.travel_amap]
+command = "npx"
+args = ["-y", "@amap/amap-maps-mcp-server@0.0.8"]
+env_vars = ["AMAP_MAPS_API_KEY"]
+startup_timeout_sec = 45
+tool_timeout_sec = 60
+enabled_tools = [
+  "maps_geo",
+  "maps_regeocode",
+  "maps_text_search",
+  "maps_around_search",
+  "maps_search_detail",
+  "maps_direction_driving",
+  "maps_direction_walking",
+  "maps_direction_transit_integrated",
+  "maps_distance",
+  "maps_weather",
+]
+
+# Community server, NOT an official China Railway MCP.
+# Startup accesses railway websites before the MCP handshake.
+# Enable only after testing successfully on your own network.
+[mcp_servers.travel_rail]
+command = "npx"
+args = ["-y", "12306-mcp@0.3.10"]
+startup_timeout_sec = 60
+tool_timeout_sec = 60
+enabled = false
+enabled_tools = [
+  "get-current-date",
+  "get-stations-code-in-city",
+  "get-station-code-of-citys",
+  "get-station-code-by-names",
+  "get-station-by-telecode",
+  "get-tickets",
+  "get-interline-tickets",
+  "get-train-route-stations",
+]

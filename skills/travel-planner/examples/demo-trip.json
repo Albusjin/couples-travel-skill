@@ -1,0 +1,740 @@
+{
+  "schema_version": "1.0",
+  "trip_id": "demo",
+  "revision": 1,
+  "title": "虚构三日旅行（仅测试）",
+  "status": "detailed",
+  "timezone": "Asia/Shanghai",
+  "data_mode": "mock",
+  "created_at": "2026-11-01T12:36:18.620044+00:00",
+  "updated_at": "2026-11-01T12:36:18.620044+00:00",
+  "preferences_snapshot": {
+    "profile_id": null,
+    "revision": null,
+    "values": {}
+  },
+  "request": {
+    "origin": "place-home",
+    "destinations": [
+      "place-market"
+    ],
+    "date_window": {
+      "start": "2030-05-10",
+      "end": "2030-05-12",
+      "flexible": false
+    },
+    "travelers": [
+      {
+        "id": "traveler-1",
+        "label": "旅行者 1",
+        "planned_driver": true
+      },
+      {
+        "id": "traveler-2",
+        "label": "旅行者 2",
+        "planned_driver": true
+      }
+    ],
+    "budget_minor": 200000,
+    "currency": "CNY",
+    "transport_preferences": [
+      "self_drive",
+      "rail_rental",
+      "rail"
+    ],
+    "interests": [],
+    "must_visit": [],
+    "excluded_places": [],
+    "overrides": {},
+    "constraints": []
+  },
+  "selected_proposal_id": "proposal-rail",
+  "cost_scope_reviewed": true,
+  "places": [
+    {
+      "id": "place-home",
+      "name": "示例出发城",
+      "provider_id": null,
+      "latitude": null,
+      "longitude": null
+    },
+    {
+      "id": "place-hotel",
+      "name": "示例舒适酒店",
+      "provider_id": null,
+      "latitude": null,
+      "longitude": null
+    },
+    {
+      "id": "place-market",
+      "name": "示例地方市集",
+      "provider_id": null,
+      "latitude": null,
+      "longitude": null
+    }
+  ],
+  "proposals": [
+    {
+      "id": "proposal-rail",
+      "title": "高铁与市内交通",
+      "mode": "rail",
+      "summary": "虚构示例：低驾驶负担",
+      "recommended": true,
+      "pros": [
+        "交通轻松"
+      ],
+      "cons": [
+        "须核验车次"
+      ],
+      "risks": [
+        "全部为模拟参考价格"
+      ],
+      "areas": [
+        "示例住宿区"
+      ],
+      "attractions": [
+        "示例地方市集"
+      ],
+      "quote_ids": [
+        "quote-rail",
+        "quote-hotel",
+        "quote-food",
+        "quote-tickets",
+        "quote-contingency",
+        "quote-deposit"
+      ],
+      "door_to_door_minutes": 180,
+      "driving_minutes": 0,
+      "cost_scope_reviewed": true
+    },
+    {
+      "id": "proposal-drive",
+      "title": "全程自驾",
+      "mode": "self_drive",
+      "summary": "仅作候选方向，费用与道路待研究",
+      "recommended": false,
+      "pros": [
+        "灵活"
+      ],
+      "cons": [
+        "驾驶负担"
+      ],
+      "risks": [
+        "未知成本，不能公平比较总价"
+      ],
+      "areas": [
+        "示例住宿区"
+      ],
+      "attractions": [
+        "示例地方市集"
+      ],
+      "quote_ids": [],
+      "door_to_door_minutes": null,
+      "driving_minutes": null,
+      "cost_scope_reviewed": false
+    }
+  ],
+  "transports": [
+    {
+      "proposal_id": "proposal-rail",
+      "locked": false,
+      "completed": false,
+      "id": "transport-rail",
+      "mode": "rail",
+      "from_place_id": "place-home",
+      "to_place_id": "place-market",
+      "depart_at": "2030-05-10T09:00:00+08:00",
+      "arrive_at": "2030-05-10T11:00:00+08:00",
+      "door_to_door_minutes": 180,
+      "transfer_notes": [
+        "示例：含到站、候车、到酒店转场；实际信息未查询"
+      ],
+      "quote_ids": [
+        "quote-rail"
+      ],
+      "source_ids": [
+        "source-mock"
+      ]
+    }
+  ],
+  "vehicles": [],
+  "accommodations": [
+    {
+      "proposal_id": "proposal-rail",
+      "locked": false,
+      "completed": false,
+      "id": "hotel-stay",
+      "place_id": "place-hotel",
+      "room_type": "double",
+      "rooms": 1,
+      "guests": 2,
+      "check_in": "2030-05-10",
+      "check_out": "2030-05-12",
+      "brand": "示例品牌",
+      "comfort_notes": [
+        "模拟舒适度说明，真实评价待核验"
+      ],
+      "parking": "unknown",
+      "breakfast": "unknown",
+      "latest_check_in": null,
+      "cancellation": "模拟：退改政策待核验",
+      "quote_ids": [
+        "quote-hotel"
+      ],
+      "source_ids": [
+        "source-mock"
+      ],
+      "policies_verified": true
+    }
+  ],
+  "activities": [
+    {
+      "proposal_id": "proposal-rail",
+      "locked": false,
+      "completed": false,
+      "id": "activity-1",
+      "place_id": "place-market",
+      "label": "市集体验与当地午餐（模拟）",
+      "start_at": "2030-05-10T12:00:00+08:00",
+      "end_at": "2030-05-10T14:00:00+08:00",
+      "timing": "flexible",
+      "access": "verified",
+      "requires_reservation": false,
+      "reservation_verified": false,
+      "source_ids": [
+        "source-mock"
+      ],
+      "quote_ids": [
+        "quote-tickets"
+      ],
+      "notes": [
+        "使用虚构开放时间验证行程逻辑"
+      ]
+    },
+    {
+      "proposal_id": "proposal-rail",
+      "locked": false,
+      "completed": false,
+      "id": "activity-2",
+      "place_id": "place-market",
+      "label": "市集体验与当地午餐（模拟）",
+      "start_at": "2030-05-11T12:00:00+08:00",
+      "end_at": "2030-05-11T14:00:00+08:00",
+      "timing": "flexible",
+      "access": "verified",
+      "requires_reservation": false,
+      "reservation_verified": false,
+      "source_ids": [
+        "source-mock"
+      ],
+      "quote_ids": [
+        "quote-tickets"
+      ],
+      "notes": [
+        "使用虚构开放时间验证行程逻辑"
+      ]
+    },
+    {
+      "proposal_id": "proposal-rail",
+      "locked": false,
+      "completed": false,
+      "id": "activity-3",
+      "place_id": "place-market",
+      "label": "市集体验与当地午餐（模拟）",
+      "start_at": "2030-05-12T12:00:00+08:00",
+      "end_at": "2030-05-12T14:00:00+08:00",
+      "timing": "flexible",
+      "access": "verified",
+      "requires_reservation": false,
+      "reservation_verified": false,
+      "source_ids": [
+        "source-mock"
+      ],
+      "quote_ids": [
+        "quote-tickets"
+      ],
+      "notes": [
+        "使用虚构开放时间验证行程逻辑"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "id": "route-1-out",
+      "from_place_id": "place-home",
+      "to_place_id": "place-market",
+      "mode": "rail",
+      "depart_at": "2030-05-10T09:00:00+08:00",
+      "duration_minutes": 120,
+      "distance_km": 150,
+      "evidence": "verified",
+      "buffers": [
+        {
+          "label": "模拟停车/拥堵或换乘",
+          "minutes": 15,
+          "reason": "仅验证缓冲计算；真实规划按道路与时段研究"
+        }
+      ],
+      "navigation_url": "https://example.invalid/navigation",
+      "source_ids": [
+        "source-mock"
+      ],
+      "depends_on_ids": [],
+      "notes": [
+        "此导航入口为模拟，不可用于实际出行"
+      ],
+      "transport_id": "transport-rail"
+    },
+    {
+      "id": "route-1-back",
+      "from_place_id": "place-market",
+      "to_place_id": "place-hotel",
+      "mode": "taxi",
+      "depart_at": "2030-05-10T18:00:00+08:00",
+      "duration_minutes": 30,
+      "distance_km": 20,
+      "evidence": "verified",
+      "buffers": [
+        {
+          "label": "模拟停车/拥堵或换乘",
+          "minutes": 15,
+          "reason": "仅验证缓冲计算；真实规划按道路与时段研究"
+        }
+      ],
+      "navigation_url": "https://example.invalid/navigation",
+      "source_ids": [
+        "source-mock"
+      ],
+      "depends_on_ids": [],
+      "notes": [
+        "此导航入口为模拟，不可用于实际出行"
+      ],
+      "transport_id": null
+    },
+    {
+      "id": "route-2-out",
+      "from_place_id": "place-hotel",
+      "to_place_id": "place-market",
+      "mode": "taxi",
+      "depart_at": "2030-05-11T09:00:00+08:00",
+      "duration_minutes": 30,
+      "distance_km": 20,
+      "evidence": "verified",
+      "buffers": [
+        {
+          "label": "模拟停车/拥堵或换乘",
+          "minutes": 15,
+          "reason": "仅验证缓冲计算；真实规划按道路与时段研究"
+        }
+      ],
+      "navigation_url": "https://example.invalid/navigation",
+      "source_ids": [
+        "source-mock"
+      ],
+      "depends_on_ids": [],
+      "notes": [
+        "此导航入口为模拟，不可用于实际出行"
+      ],
+      "transport_id": null
+    },
+    {
+      "id": "route-2-back",
+      "from_place_id": "place-market",
+      "to_place_id": "place-hotel",
+      "mode": "taxi",
+      "depart_at": "2030-05-11T18:00:00+08:00",
+      "duration_minutes": 30,
+      "distance_km": 20,
+      "evidence": "verified",
+      "buffers": [
+        {
+          "label": "模拟停车/拥堵或换乘",
+          "minutes": 15,
+          "reason": "仅验证缓冲计算；真实规划按道路与时段研究"
+        }
+      ],
+      "navigation_url": "https://example.invalid/navigation",
+      "source_ids": [
+        "source-mock"
+      ],
+      "depends_on_ids": [],
+      "notes": [
+        "此导航入口为模拟，不可用于实际出行"
+      ],
+      "transport_id": null
+    },
+    {
+      "id": "route-3-out",
+      "from_place_id": "place-hotel",
+      "to_place_id": "place-market",
+      "mode": "taxi",
+      "depart_at": "2030-05-12T09:00:00+08:00",
+      "duration_minutes": 30,
+      "distance_km": 20,
+      "evidence": "verified",
+      "buffers": [
+        {
+          "label": "模拟停车/拥堵或换乘",
+          "minutes": 15,
+          "reason": "仅验证缓冲计算；真实规划按道路与时段研究"
+        }
+      ],
+      "navigation_url": "https://example.invalid/navigation",
+      "source_ids": [
+        "source-mock"
+      ],
+      "depends_on_ids": [],
+      "notes": [
+        "此导航入口为模拟，不可用于实际出行"
+      ],
+      "transport_id": null
+    },
+    {
+      "id": "route-3-back",
+      "from_place_id": "place-market",
+      "to_place_id": "place-home",
+      "mode": "rail",
+      "depart_at": "2030-05-12T18:00:00+08:00",
+      "duration_minutes": 120,
+      "distance_km": 150,
+      "evidence": "verified",
+      "buffers": [
+        {
+          "label": "模拟停车/拥堵或换乘",
+          "minutes": 15,
+          "reason": "仅验证缓冲计算；真实规划按道路与时段研究"
+        }
+      ],
+      "navigation_url": "https://example.invalid/navigation",
+      "source_ids": [
+        "source-mock"
+      ],
+      "depends_on_ids": [],
+      "notes": [
+        "此导航入口为模拟，不可用于实际出行"
+      ],
+      "transport_id": null
+    }
+  ],
+  "days": [
+    {
+      "id": "day-1",
+      "date": "2030-05-10",
+      "start_place_id": "place-home",
+      "end_place_id": "place-hotel",
+      "activity_ids": [
+        "activity-1"
+      ],
+      "route_ids": [
+        "route-1-out",
+        "route-1-back"
+      ],
+      "accommodation_id": "hotel-stay",
+      "hotel_route_id": "route-1-back",
+      "hotel_exception_decision_id": null,
+      "walking_km": 6,
+      "driving_minutes": 0,
+      "rest_notes": [
+        "午餐与休息 1 小时（模拟）"
+      ],
+      "free_time_notes": [
+        "下午留白"
+      ],
+      "weather_notes": [
+        "无真实预报，出行前查询"
+      ],
+      "alternatives": [
+        "模拟室内替代活动"
+      ],
+      "quote_ids": [
+        "quote-food"
+      ]
+    },
+    {
+      "id": "day-2",
+      "date": "2030-05-11",
+      "start_place_id": "place-hotel",
+      "end_place_id": "place-hotel",
+      "activity_ids": [
+        "activity-2"
+      ],
+      "route_ids": [
+        "route-2-out",
+        "route-2-back"
+      ],
+      "accommodation_id": "hotel-stay",
+      "hotel_route_id": "route-2-back",
+      "hotel_exception_decision_id": null,
+      "walking_km": 6,
+      "driving_minutes": 0,
+      "rest_notes": [
+        "午餐与休息 1 小时（模拟）"
+      ],
+      "free_time_notes": [
+        "下午留白"
+      ],
+      "weather_notes": [
+        "无真实预报，出行前查询"
+      ],
+      "alternatives": [
+        "模拟室内替代活动"
+      ],
+      "quote_ids": [
+        "quote-food"
+      ]
+    },
+    {
+      "id": "day-3",
+      "date": "2030-05-12",
+      "start_place_id": "place-hotel",
+      "end_place_id": "place-home",
+      "activity_ids": [
+        "activity-3"
+      ],
+      "route_ids": [
+        "route-3-out",
+        "route-3-back"
+      ],
+      "accommodation_id": null,
+      "hotel_route_id": null,
+      "hotel_exception_decision_id": "decision-return-home",
+      "walking_km": 6,
+      "driving_minutes": 0,
+      "rest_notes": [
+        "午餐与休息 1 小时（模拟）"
+      ],
+      "free_time_notes": [
+        "下午留白"
+      ],
+      "weather_notes": [
+        "无真实预报，出行前查询"
+      ],
+      "alternatives": [
+        "模拟室内替代活动"
+      ],
+      "quote_ids": [
+        "quote-food"
+      ]
+    }
+  ],
+  "quotes": [
+    {
+      "id": "quote-rail",
+      "target_id": "demo",
+      "label": "虚构rail",
+      "category": "transport",
+      "currency": "CNY",
+      "unit": "person",
+      "quantity": 2,
+      "unit_amount_minor": 20000,
+      "components": [],
+      "mandatory_fees_complete": true,
+      "status": "reference",
+      "conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2
+      },
+      "expected_conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2
+      },
+      "source_ids": [
+        "source-mock"
+      ],
+      "queried_at": "2026-11-01T12:00:00+08:00",
+      "valid_until": null
+    },
+    {
+      "id": "quote-hotel",
+      "target_id": "hotel-stay",
+      "label": "虚构hotel",
+      "category": "hotel",
+      "currency": "CNY",
+      "unit": "room_night",
+      "quantity": 2,
+      "unit_amount_minor": 25000,
+      "components": [],
+      "mandatory_fees_complete": true,
+      "status": "reference",
+      "conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2,
+        "check_in": "2030-05-10",
+        "check_out": "2030-05-12",
+        "rooms": 1,
+        "room_type": "double"
+      },
+      "expected_conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2,
+        "check_in": "2030-05-10",
+        "check_out": "2030-05-12",
+        "rooms": 1,
+        "room_type": "double"
+      },
+      "source_ids": [
+        "source-mock"
+      ],
+      "queried_at": "2026-11-01T12:00:00+08:00",
+      "valid_until": null
+    },
+    {
+      "id": "quote-food",
+      "target_id": "demo",
+      "label": "虚构food",
+      "category": "food",
+      "currency": "CNY",
+      "unit": "trip",
+      "quantity": 1,
+      "unit_amount_minor": 30000,
+      "components": [],
+      "mandatory_fees_complete": true,
+      "status": "reference",
+      "conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2
+      },
+      "expected_conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2
+      },
+      "source_ids": [
+        "source-mock"
+      ],
+      "queried_at": "2026-11-01T12:00:00+08:00",
+      "valid_until": null
+    },
+    {
+      "id": "quote-tickets",
+      "target_id": "demo",
+      "label": "虚构tickets",
+      "category": "ticket",
+      "currency": "CNY",
+      "unit": "trip",
+      "quantity": 1,
+      "unit_amount_minor": 0,
+      "components": [],
+      "mandatory_fees_complete": true,
+      "status": "reference",
+      "conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2
+      },
+      "expected_conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2
+      },
+      "source_ids": [
+        "source-mock"
+      ],
+      "queried_at": "2026-11-01T12:00:00+08:00",
+      "valid_until": null
+    },
+    {
+      "id": "quote-contingency",
+      "target_id": "demo",
+      "label": "虚构contingency",
+      "category": "contingency",
+      "currency": "CNY",
+      "unit": "trip",
+      "quantity": 1,
+      "unit_amount_minor": 20000,
+      "components": [],
+      "mandatory_fees_complete": true,
+      "status": "reference",
+      "conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2
+      },
+      "expected_conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2
+      },
+      "source_ids": [
+        "source-mock"
+      ],
+      "queried_at": "2026-11-01T12:00:00+08:00",
+      "valid_until": null
+    },
+    {
+      "id": "quote-deposit",
+      "target_id": "demo",
+      "label": "虚构deposit",
+      "category": "deposit",
+      "currency": "CNY",
+      "unit": "trip",
+      "quantity": 1,
+      "unit_amount_minor": 50000,
+      "components": [],
+      "mandatory_fees_complete": true,
+      "status": "reference",
+      "conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2
+      },
+      "expected_conditions": {
+        "trip_start": "2030-05-10",
+        "trip_end": "2030-05-12",
+        "travelers": 2
+      },
+      "source_ids": [
+        "source-mock"
+      ],
+      "queried_at": "2026-11-01T12:00:00+08:00",
+      "valid_until": null
+    }
+  ],
+  "bookings": [],
+  "expenses": [],
+  "sources": [
+    {
+      "id": "source-mock",
+      "provider": "虚构测试数据",
+      "kind": "mock",
+      "queried_at": "2026-11-01T12:00:00+08:00",
+      "conditions": {
+        "scenario": "synthetic-only"
+      },
+      "url": "https://example.invalid/synthetic",
+      "reliable": true,
+      "note": "不存在真实车次、酒店、报价或路线"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "decision-return-home",
+      "kind": "hotel_exception",
+      "target_ids": [
+        "day-3"
+      ],
+      "summary": "虚构测试用户确认：返程日回家，无酒店住宿",
+      "confirmed_by": "虚构测试用户",
+      "confirmed_at": "2026-11-01T12:00:00+08:00",
+      "change_id": null,
+      "details": {
+        "date": "2030-05-12",
+        "no_hotel": true
+      }
+    }
+  ],
+  "cost_quote_ids": [
+    "quote-rail",
+    "quote-hotel",
+    "quote-food",
+    "quote-tickets",
+    "quote-contingency",
+    "quote-deposit"
+  ],
+  "notes": []
+}
