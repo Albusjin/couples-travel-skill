@@ -67,3 +67,5 @@
 2026-11-02 基于最新 `origin/main`（eb677e7）重构配置与运行适配层。共 93 项测试（原 76 项 + 17 项运行层回归）在云端 Linux / Python 3.12.14 全部通过，并在全新虚拟环境中再次全量通过；独立依赖环境包含 mcp 1.30.0、tomlkit 0.15.2、jsonschema 4.26.0 与 tzdata 2026.6。运行层检查覆盖平台默认目录、配置/环境/CLI 优先级、显式配置透传、配置 PATH 查找、空格/中文路径、安装时排除本机配置、共享 MCP 参数/白名单及 npm 自定义路径。另在带空格的全新目录中从零创建 venv 并安装依赖，完成 doctor、MCP TOML 生成和从其他工作目录启动样例校验；Markdown 文档相对链接检查通过。
 
 CI 已调整为 Ubuntu/macOS/Windows × Python 3.11/3.13 全量测试，统一使用 Node 24；本次尚未推送，未取得该矩阵的远端结果。没有运行真实 Key 查询或修改用户 Codex 配置，用户设备的权限、GUI 加载与业务实测仍按 [系统迁移指南](../skills/travel-planner/references/system-migration.md) 独立验收。本次不改变业务规则和 Schema 版本。
+
+2026-11-02 提交 7f32b13 的首次六组合 CI：Ubuntu 两项通过，macOS/Windows 四项均为 92/93 通过，唯一失败是配置路径透传测试按字符串比较文件路径。运行层使用 resolve 后，macOS 的 `/var` 展开为 `/private/var`，Windows 的 `RUNNER~1` 展开为 `runneradmin`，二者都仍指向原文件。修复测试为检查绝对路径及 samefile 文件身份；同时加入含 `..` 的路径输入，让 Linux 也实际覆盖路径归一化。未跳过测试或修改业务规则；修复后的跨平台结果以新提交的 CI 为准。

@@ -139,11 +139,18 @@ class RuntimeLaunchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="travel child ") as folder:
             config = Path(folder) / "runtime.toml"
             config.write_text('[paths]\ndata_dir="private data"\n', encoding="utf-8")
-            settings = load_settings(config)
+            # Exercise normalization on every host, including Linux where temp
+            # paths normally have neither macOS symlinks nor Windows 8.3 aliases.
+            alias_directory = Path(folder) / "alias directory"
+            alias_directory.mkdir()
+            selected = alias_directory / ".." / config.name
+            settings = load_settings(selected)
             with patch("runtime.python_version"), patch("runtime.subprocess.run") as run:
                 run.return_value.returncode = 0
                 runtime.launch(settings, "travel.py", ["read", "demo"])
-            self.assertEqual(run.call_args.kwargs["env"]["TRAVEL_PLANNER_RUNTIME_CONFIG"], str(config))
+            forwarded = Path(run.call_args.kwargs["env"]["TRAVEL_PLANNER_RUNTIME_CONFIG"])
+            self.assertTrue(forwarded.is_absolute())
+            self.assertTrue(forwarded.samefile(selected))
 
     def test_cli_uses_configured_data_dir_and_explicit_cli_overrides_it(self):
         with tempfile.TemporaryDirectory(prefix="travel CLI ") as folder:
