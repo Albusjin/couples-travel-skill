@@ -2,11 +2,11 @@
 
 让 AI agent 帮两个人把一个粗略的旅行想法，逐步变成有来源、能调整、可确认的行程。
 
-**通用版 1.2.0 · 2026-11-03**。面向中国大陆双人自由行，包含完整 Skill、轻量 Python 核心、Codex / DeepSeek Harness 配置参考和 Agent 安装规范。接收方下载后把安装交给自己的 agent；模型、账号与服务授权由接收方环境提供。
+**通用版 1.2.1 · 2026-11-03**。面向中国大陆双人自由行，包含完整 Skill、轻量 Python 核心、Codex / DeepSeek Harness 配置参考和 Agent 安装规范。接收方下载后把安装交给自己的 agent；模型、账号与服务授权由接收方环境提供。
 
 ## 下载并交给你的 Agent
 
-**[下载通用 Skill ZIP](https://github.com/Albusjin/couples-travel-skill/raw/refs/heads/main/releases/travel-planner-universal-1.2.0.zip)** · [SHA-256 校验值](releases/SHA256SUMS) · [更新日志](CHANGELOG.md)
+**[下载通用 Skill ZIP](https://github.com/Albusjin/couples-travel-skill/raw/refs/heads/main/releases/travel-planner-universal-1.2.1.zip)** · [SHA-256 校验值](releases/SHA256SUMS) · [更新日志](CHANGELOG.md)
 
 1. 下载并解压，得到完整的 `travel-planner/` 文件夹。
 2. 用能读写文件、运行命令的 agent 打开这个文件夹。实时查询还需要宿主支持 MCP / 网页工具。
@@ -81,7 +81,7 @@ ZIP 不含发布者的 Key、私人路径、真实旅行、登录状态、虚拟
 | [跨宿主接入](skills/travel-planner/references/harness-setup.md) | Codex、DeepSeek Harness 的配置与官方来源 |
 | [数据与命令](skills/travel-planner/references/data-and-cli.md) | JSON Schema、CLI、预算与版本存储 |
 | [CHANGELOG.md](CHANGELOG.md) | 版本变化与已知边界 |
-| [1.2.0 验证记录](docs/universal-release-1.2.0.md) | 此次发行的测试结果与未验证范围 |
+| [1.2.1 验证记录](docs/universal-release-1.2.1.md) | 此次发行的测试结果与未验证范围 |
 
 ## 开发与重新打包
 
@@ -94,4 +94,4 @@ python scripts/build_release.py
 
 构建使用 [明确的发行白名单](release-files.json)，拒绝符号链接、私人配置、过大文件和可识别凭证，生成小型确定性 ZIP、逐文件 `MANIFEST.json` 和 `SHA256SUMS`。校验清单用于一致性检查，不是数字签名或完整秘密审计。
 
-发行包版本为 **1.2.0**，旅行数据仍为 `schema_version=1.0`，本次新增可选字段兼容旧文档；不自动改写已有旅行历史。远端 CI 与目标机实际验收结果分别报告。
+发行包版本为 **1.2.1**，旅行数据仍为 `schema_version=1.0`，本次新增可选字段兼容旧文档；不自动改写已有旅行历史。远端 CI 与目标机实际验收结果分别报告。

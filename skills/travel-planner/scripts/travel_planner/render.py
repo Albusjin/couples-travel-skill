@@ -193,18 +193,21 @@ def render(store, trip_id, website=False, theme=None, map_config=None):
         from .web import web_files
         web_views, web_metadata = web_files(store, trip, theme, map_config, generated_at)
         files.update(web_views)
+    # Hash exactly the bytes that are published. Text-mode writes on Windows
+    # translate LF to CRLF and otherwise invalidate a freshly generated view.
+    encoded_files = {name: content.encode("utf-8") for name, content in files.items()}
     directory.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not directory.exists():
         temporary = Path(tempfile.mkdtemp(prefix=".render-", dir=directory.parent))
         try:
-            for name, content in files.items():
-                (temporary / name).write_text(content, encoding="utf-8")
+            for name, content in encoded_files.items():
+                (temporary / name).write_bytes(content)
             atomic_json(temporary / "manifest.json", {"trip_id": trip_id, "revision": trip["revision"],
                                                        "document_hash": digest(trip), "generated_at": generated_at,
                                                        "validation_hash": digest(validate(trip, as_of=generated_at)),
                                                        "files": list(files), "web": web_metadata,
-                                                       "file_hashes": {name: hashlib.sha256(value.encode("utf-8")).hexdigest()
-                                                                       for name, value in files.items()}})
+                                                       "file_hashes": {name: hashlib.sha256(value).hexdigest()
+                                                                       for name, value in encoded_files.items()}})
             os.rename(temporary, directory)
         finally:
             if temporary.exists():

@@ -323,6 +323,28 @@ class StoreTests(unittest.TestCase):
         change = self.store.propose("demo", document, scope=scope)
         return self.store.commit("demo", change["change_id"], approvals(change))
 
+    def test_output_hashes_survive_windows_text_newline_translation(self):
+        self.document["status"] = "confirmed"
+        change = self.store.propose("demo", self.document)
+        self.store.commit("demo", change["change_id"], approvals(change))
+        original_open = Path.open
+
+        def windows_text_open(path, mode="r", buffering=-1, encoding=None, errors=None, newline=None):
+            # Reproduce Windows text-mode writes on every CI host, rather than
+            # relying on the developer's OS to expose byte/hash mismatches.
+            if "w" in mode and "b" not in mode and newline is None:
+                newline = "\r\n"
+            return original_open(path, mode, buffering, encoding, errors, newline)
+
+        for website in (False, True):
+            with self.subTest(website=website), patch.object(Path, "open", windows_text_open):
+                output = render(self.store, "demo", website=website, theme="guide" if website else None)
+                status = output_status(self.store, "demo")
+                self.assertTrue(status["outputs_current"])
+                self.assertEqual(status["website_current"], website)
+                for filename in output["files"]:
+                    self.assertNotIn(b"\r\n", Path(filename).read_bytes())
+
     def test_full_cycle_and_versioned_outputs(self):
         self.document["status"] = "confirmed"
         change = self.store.propose("demo", self.document)

@@ -1,4 +1,4 @@
-# Travel Planner · 通用版 1.2.0
+# Travel Planner · 通用版 1.2.1
 
 面向中国大陆双人自由行的 Agent Skill：用选择题完善需求，给出有理由和资料入口的景点组合，比较交通住宿，细化景区内部路线，分配总预算，管理确认、锁定和修改历史。
 
@@ -55,4 +55,4 @@ python3 scripts/runtime.py run budget-fit --input examples/demo-trip.json
 - [数据与 CLI](references/data-and-cli.md)：数据契约、确认、版本与输出。
 - [系统迁移](references/system-migration.md)、[MCP 验收](references/mcp-setup.md)：目标环境适配与失败分支。
 
-[项目源码与最新下载](https://github.com/Albusjin/couples-travel-skill)。发行包版本 1.2.0，数据结构版本 1.0。
+[项目源码与最新下载](https://github.com/Albusjin/couples-travel-skill)。发行包版本 1.2.1，数据结构版本 1.0。
