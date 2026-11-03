@@ -65,7 +65,7 @@ def build(root=ROOT):
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         for name, data in sorted(contents.items()):
-            entry = zipfile.ZipInfo('travel-planner/' + name, date_time=(2026, 11, 2, 0, 0, 0))
+            entry = zipfile.ZipInfo('travel-planner/' + name, date_time=(2026, 11, 3, 0, 0, 0))
             entry.create_system = 3
             entry.external_attr = 0o100644 << 16
             entry.compress_type = zipfile.ZIP_DEFLATED
@@ -83,7 +83,8 @@ def main():
     destination = args.output_dir / name
     destination.write_bytes(data)
     digest = hashlib.sha256(data).hexdigest()
-    (args.output_dir / 'SHA256SUMS').write_text(digest + '  ' + name + '\n', encoding='utf-8')
+    archives = sorted(p for p in args.output_dir.glob('travel-planner-universal-*.zip') if re.fullmatch(r'travel-planner-universal-\d+\.\d+\.\d+\.zip', p.name))
+    (args.output_dir / 'SHA256SUMS').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name + '\n' for p in archives), encoding='utf-8')
     print(json.dumps({'zip': str(destination), 'files': count, 'bytes': len(data), 'sha256': digest}))
 
 

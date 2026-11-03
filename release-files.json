@@ -1,7 +1,8 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "files": [
     "AGENT_HANDOFF.md",
+    "CHANGELOG.md",
     "README.md",
     "SKILL.md",
     "VERSION",
@@ -15,9 +16,11 @@
     "examples/walkthrough.py",
     "references/data-and-cli.md",
     "references/harness-setup.md",
+    "references/interactive-planning.md",
     "references/mcp-setup.md",
     "references/mcp-usage.md",
     "references/rules.md",
+    "references/scenic-and-web.md",
     "references/system-migration.md",
     "references/transport-planning.md",
     "requirements-amap-setup.txt",
@@ -30,17 +33,24 @@
     "scripts/setup_amap.py",
     "scripts/travel.py",
     "scripts/travel_planner/__init__.py",
+    "scripts/travel_planner/allocation.py",
     "scripts/travel_planner/budget.py",
     "scripts/travel_planner/capabilities.py",
     "scripts/travel_planner/model.py",
     "scripts/travel_planner/render.py",
+    "scripts/travel_planner/scenic.py",
     "scripts/travel_planner/store.py",
     "scripts/travel_planner/transport.py",
     "scripts/travel_planner/validation.py",
+    "scripts/travel_planner/web.py",
     "scripts/travel_runtime/__init__.py",
     "scripts/travel_runtime/config.py",
     "scripts/travel_runtime/mcp.py",
     "scripts/verify_package.py",
-    "templates/view.md"
+    "templates/view.md",
+    "templates/web/app.js",
+    "templates/web/budget.js",
+    "templates/web/index.html",
+    "templates/web/style.css"
   ]
 }

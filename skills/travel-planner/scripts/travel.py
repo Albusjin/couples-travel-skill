@@ -55,6 +55,15 @@ def parser():
     restore.add_argument("--scope", nargs="*")
     for command in ("render", "output-status"):
         sub.add_parser(command).add_argument("trip_id")
+    web = sub.add_parser("render-web", help="仅为已确认计划生成网站，必须明确选择风格")
+    web.add_argument("trip_id")
+    web.add_argument("--theme", required=True, choices=("guide", "journal", "map"))
+    web.add_argument("--map-config", help="私有地图接入配置 JSON；只含浏览器 amap_key 与安全代理 service_host")
+    fit = sub.add_parser("budget-fit", help="只读预算额度试算，不修改报价或计划")
+    fit.add_argument("--input", required=True, help="完整旅行 JSON")
+    imported = sub.add_parser("budget-import", help="网页试算草稿转待审核候选，不自动提交")
+    imported.add_argument("trip_id")
+    imported.add_argument("--input", required=True)
     profile_read = sub.add_parser("profile-read")
     profile_read.add_argument("profile_id")
     profile_propose = sub.add_parser("profile-propose")
@@ -74,6 +83,13 @@ def parser():
 
 
 def execute(args):
+    if args.command == "budget-fit":
+        from travel_planner.allocation import fit_trip
+        document = load_json(args.input)
+        report = validate(document)
+        if report["errors"]:
+            raise PlannerError("validation", "旅行结构或预算分配无效", errors=report["errors"])
+        return {"allocation": fit_trip(document), "budget": report["budget"]}, 0
     if args.command == "validate":
         report = validate(load_json(args.input))
         return report, 2 if report["errors"] else 0
@@ -107,6 +123,12 @@ def execute(args):
         return store.restore(args.trip_id, args.revision, args.scope), 0
     if args.command == "render":
         return render(store, args.trip_id), 0
+    if args.command == "render-web":
+        return render(store, args.trip_id, website=True, theme=args.theme,
+                      map_config=load_json(args.map_config) if args.map_config else None), 0
+    if args.command == "budget-import":
+        from travel_planner.web import import_budget_draft
+        return import_budget_draft(store, args.trip_id, load_json(args.input)), 0
     if args.command == "output-status":
         return output_status(store, args.trip_id), 0
     if args.command == "profile-read":

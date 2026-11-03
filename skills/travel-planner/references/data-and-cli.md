@@ -32,7 +32,10 @@
 | `commit <trip_id> <change_id> [--decisions decisions.json] [--no-render]` | 确认绑定具体 change_id；保存新修订，默认生成三份 Markdown |
 | `compare <trip_id> <old_revision> [--new-revision N]` | 比较实体变化及费用；不完整差异标明仅已知金额 |
 | `restore <trip_id> <revision> [--scope …]` | 生成恢复候选，仍需 commit |
-| `render <trip_id>` / `output-status <trip_id>` | 生成同版本视图 / 判断输出是否对应当前版本 |
+| `render <trip_id>` / `output-status <trip_id>` | 生成同版本 Markdown / 判断输出与网站是否对应当前版本 |
+| `render-web <trip_id> --theme guide\|journal\|map [--map-config private-map.json]` | 已确认计划与明确风格生成同版本网站；不会发布 |
+| `budget-fit --input candidate.json` | 无写入的支出额度试算，与真实报价分开 |
+| `budget-import <trip_id> --input budget-draft.json` | 校验网页草稿版本及锁定保护，仅产生待审核候选 |
 | `profile-read <profile_id>` | 读取已确认长期档案 |
 | `profile-propose <profile_id> --input values.json --expected-revision N` | 新档案 N=0；返回逐项新旧值与后续影响 |
 | `profile-commit <profile_id> <change_id> --decisions decisions.json` | 每项确认后保存长期档案新版本 |
@@ -72,3 +75,20 @@ required_approvals 列出的每个 kind/target 均须匹配。`confirmed` 要求
 外部适配协议为 CapabilityRequest(capability, conditions) → CapabilityResult(status, data_mode, queried_at, conditions, records, sources, failure_reason, limitations)。能力包括 maps/rail/taxi/hotels/rental/energy/attractions/weather。当前 ProvidedDataAdapter 只读取用户提供/模拟响应，不做网络请求，不自动把 records 导入主数据或提高证据等级。
 
 响应文件为 `{"conditions":{…},"records":[…],"sources":[…]}`；条件不匹配返回 unavailable，记录或来源缺失返回 partial。未来供应商适配器需实现同一只读协议，并独立验证真实覆盖、费用、权限、时效和失败行为。
+
+## 交互升级的可选数据（2026-11-03）
+
+继续使用 schema_version=1.0，以可选字段兼容已有完整文档：读取旧修订不补写字段、不改哈希、不批量迁移；新增字段须使用本次升级后的运行器。新字段的权威定义仍为 JSON Schema。
+
+- Place 可选 parent_place_id、coordinate_system（gcj02/wgs84/unknown）、role、recommendation_reason、introduction_url、photo（url/source_url/caption）。缺坐标系视为未知，不从 provider_id 猜测。图片必须是真实来源，可只保留介绍链接。
+- Route 增加 shuttle/cable_car/elevator/boat；可选 geometry={kind,coordinate_system,coordinates,source_ids}、operating_window={first_departure_at,last_departure_at,source_ids}。coordinates 为 [经度,纬度] 数组；不得从导航 URL 推断为实际路径。
+- Trip 可选 scenic_visits：每项含 id/day_id/scenic_place_id/entry_place_id/exit_place_id/activity_ids/route_ids/effort/notes/alternatives/source_ids。它是 Day 已引用活动与路线的分组，不另加一次时间或费用。完整使用规则见 [景区与网站](scenic-and-web.md)。
+- Trip 可选 budget_plan={reserve_minor,items}。每项完整包含 id、label、quote_id（可空）、amount_minor（可空，整项双人合计）、minimum_minor、maximum_minor（可空）、weight（1–1000）、locked。金额用分，最大 10^12 分；最多 200 项。locked=true 为固定费用；false 为自动分配额度。报价单价/数量仍只存在 Quote，不在此按人数或天数再乘。
+- reserve_minor 是项目外额外备用金，默认 0；已列 contingency 不要再重复预留。minimum_minor 是用户认可或有依据的最低额度，不填虚构“合理底价”。maximum_minor=null 表示没有指定分配上限。先满足最低额，再按权重分配余额，封顶后转给其他项目。
+- quote_id 关联当前 cost_quote_ids；每份非押金报价最多一行，漏掉的会补回。quote_id=null 用于尚无报价的额外支出，不能重复表示已存在的报价。未知固定费用输出 incomplete，预算缺失为 unknown_budget；最低费用不足为 over_budget，shortfall_minor 给出至少差额。allocated/ fits_target 仅说明额度数学上可分配，不证明真实完整预算。
+- 运行期 prepare_plan 推导 protected/automatic 标记，不作为输入持久化。已付费用尽量匹配 quote_id，明确关联可避免重复计费；无法匹配的净消费作为自动只读行。已锁定/预订/支付的费用由实际实体推导保护，不能通过网页解除。
+- 网页导出格式 travel-budget-draft/1：trip_id/base_revision/base_hash/currency/total_minor/plan。budget-import 严格匹配当前文档，调用 propose；不会 commit，也不会改变 Quote/Expense。候选返回 detailed 后须重新确认整份行程再导出网站。
+- 普通 render/commit 只输出 Markdown。render-web 必须选 theme，检查已确认状态、当前变更的确认记录和校验。地图私有接入配置只接受 amap_key（浏览器公开 Key）和 service_host（安全代理 HTTPS 入口），绝不传安全密钥到网页。导出目录含 index.html/style.css/budget.js/app.js 及原 Markdown，无需构建或常驻服务。
+- manifest 保存网页状态与逐文件哈希；output-status 包含 website_current、website.map_configured 与 map_pending。配置可用性、地图加载、路径实际精度须另行实测；map_verified=false 不可解释为已验收。所有本地导出和草稿依旧保存到仓库外私有目录。
+
+本通用发行包的网站视觉设计尚未定稿；安装只验证离线核心与所选实时查询，不生成或发布网站。网页预算编辑当前仅支持人民币。

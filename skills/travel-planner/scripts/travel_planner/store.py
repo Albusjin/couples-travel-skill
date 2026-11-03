@@ -64,8 +64,8 @@ def diff(before, after):
         if before.get(key) == after.get(key):
             continue
         if key in COLLECTIONS:
-            old = {v["id"]: v for v in before[key]}
-            new = {v["id"]: v for v in after[key]}
+            old = {v["id"]: v for v in before.get(key, [])}
+            new = {v["id"]: v for v in after.get(key, [])}
             for item_id in sorted(old.keys() | new.keys()):
                 if old.get(item_id) != new.get(item_id):
                     changed.append({"collection": key, "id": item_id, "before": old.get(item_id), "after": new.get(item_id)})
@@ -93,7 +93,7 @@ def references(value):
 def change_impact(before, after, changes):
     changed = {c["id"] for c in changes}
     # Dependency closure across both old and new versions catches removed dependencies too.
-    entities = [item for trip in (before, after) for group in COLLECTIONS for item in trip[group]]
+    entities = [item for trip in (before, after) for group in COLLECTIONS for item in trip.get(group, [])]
     while True:
         extra = {item["id"] for item in entities if references(item) & changed}
         updated = changed | extra
@@ -120,7 +120,7 @@ def normalize(trip):
 class Store:
     def __init__(self, data_dir):
         if not data_dir:
-            raise PlannerError("private_directory_required", "请先在 Desktop 指定仓库外的私有目录；不会使用默认云目录")
+            raise PlannerError("private_directory_required", "请先指定安装包与仓库外的私有持久目录；不默认使用临时云目录")
         self.root = Path(data_dir).expanduser().resolve()
         for parent in (self.root, *self.root.parents):
             # Managed sandboxes may mount an empty .git placeholder; it is not a repository.

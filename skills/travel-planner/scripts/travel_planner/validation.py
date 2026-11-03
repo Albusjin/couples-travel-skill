@@ -8,7 +8,7 @@ from .model import effective_preferences, schema_errors, timestamp
 from .transport import quote_transports, reference_source
 
 COLLECTIONS = ("places", "proposals", "transports", "vehicles", "accommodations", "activities",
-               "routes", "days", "quotes", "bookings", "expenses", "sources", "decisions")
+               "routes", "days", "quotes", "bookings", "expenses", "sources", "decisions", "scenic_visits")
 LOCKABLE = ("transports", "vehicles", "accommodations", "activities")
 DETAILED = {"detailed", "confirmed", "in_progress", "completed"}
 
@@ -30,10 +30,10 @@ def validate(trip, as_of=None):
               "budget": None, "can_confirm": False, "data_mode": trip.get("data_mode") if isinstance(trip, dict) else None}
     if errors:
         return result
-    maps = {key: {item["id"]: item for item in trip[key]} for key in COLLECTIONS}
+    maps = {key: {item["id"]: item for item in trip.get(key, [])} for key in COLLECTIONS}
     all_ids = {trip["trip_id"]}
     for key in COLLECTIONS:
-        for item in trip[key]:
+        for item in trip.get(key, []):
             if item["id"] in all_ids:
                 errors.append({"code": "duplicate_id", "message": "稳定 ID 必须全局唯一", "target_id": item["id"]})
             all_ids.add(item["id"])
@@ -60,7 +60,9 @@ def validate(trip, as_of=None):
                "source_ids": maps["sources"], "quote_ids": maps["quotes"], "cost_quote_ids": maps["quotes"],
                "route_ids": maps["routes"], "activity_ids": maps["activities"],
                "driver_ids": travelers, "destinations": maps["places"], "must_visit": maps["places"],
-               "excluded_places": maps["places"], "target_id": all_ids, "depends_on_ids": all_ids}
+               "excluded_places": maps["places"], "target_id": all_ids, "depends_on_ids": all_ids,
+               "parent_place_id": maps["places"], "scenic_place_id": maps["places"],
+               "entry_place_id": maps["places"], "exit_place_id": maps["places"], "day_id": maps["days"]}
 
     def walk(value, owner="trip"):
         if isinstance(value, dict):
@@ -120,6 +122,11 @@ def validate(trip, as_of=None):
             hard("user_constraint", condition["id"], state, condition["description"])
         elif state != "pass":
             warn("preference", condition["id"], condition["description"])
+
+    from .scenic import check_scenic
+    check_scenic(trip, maps, errors, hard, sourced)
+    if errors:
+        return result
 
     for booking in trip["bookings"]:
         if booking["status"] in ("booked", "completed", "cancelled"):
@@ -413,6 +420,13 @@ def validate(trip, as_of=None):
                 included = any(maps["routes"][rid]["transport_id"] == transport["id"] for rid in used_routes)
                 hard("transport_included", transport["id"], "pass" if included else "unknown", "选中的固定交通必须纳入日程路线，不能只保留独立票务记录")
     result["budget"] = summarize(trip, as_of=as_of)
+    if "budget_plan" in trip:
+        from .allocation import fit_trip
+        from .model import PlannerError
+        try:
+            result["budget"]["allocation"] = fit_trip(trip)
+        except PlannerError as error:
+            errors.append({"code": error.code, "message": str(error)})
     budget = result["budget"]
     for qid in budget["pending_quote_ids"]:
         result["pending"].append({"code": "quote", "target_id": qid, "message": "费用或适用条件未完整核实，未知金额不计为零"})

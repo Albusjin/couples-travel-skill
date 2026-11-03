@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>旅行计划</title>
+  <link rel="stylesheet" href="style.css">
+  <script id="travel-data" type="application/json">{{PAYLOAD}}</script>
+  <script src="budget.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="eyebrow">两个人，慢慢走 · TRAVEL PLANNER</div>
+    <h1 id="trip-title">旅行计划</h1>
+    <p id="trip-meta"></p>
+    <div id="summary" class="summary"></div>
+    <label class="theme-label">页面风格 <select id="theme"><option value="guide">清爽攻略</option><option value="journal">旅行杂志</option><option value="map">地图工具</option></select></label>
+  </header>
+  <nav aria-label="内容导航"><a href="#itinerary">每日行程</a><a href="#route-map">路线地图</a><a href="#budget">预算试算</a><a href="#references">资料与待核实</a></nav>
+  <main>
+    <section id="itinerary">
+      <div class="section-heading"><h2>把时间留给喜欢的地方</h2><label>查看日期 <select id="day-filter"></select></label></div>
+      <div id="days"></div>
+    </section>
+    <section id="route-map">
+      <div class="section-heading"><h2>沿途与停留</h2><button id="load-map" type="button">加载互动地图（联网）</button></div>
+      <p>编号与每日地点列表对应；实线为有来源的实际路径，虚线仅表示游览顺序。地图不代表实时通行状态。</p>
+      <p id="map-status" role="status" aria-live="polite"></p>
+      <div id="map-canvas" aria-label="旅行路线地图"></div>
+      <div id="map-points"></div>
+      <details><summary>路线精度与位置缺口</summary><ul id="map-pending"></ul></details>
+    </section>
+    <section id="budget">
+      <h2>在预算里，留一点从容</h2>
+      <p>填写你们已知的费用，勾选保持不变的项目，其余额度自动分配。最低额度与权重决定取舍；权重越高，分配越多。</p>
+      <p>试算额度不等于实际报价。更换酒店、景点或交通，还需核对真实候选。固定项目中的空白金额表示未知。</p>
+      <div class="budget-controls"><label>双人总预算（元）<input id="total" type="number" min="0" max="10000000000" step="0.01"></label><label>额外备用金（元）<input id="reserve" type="number" min="0" max="10000000000" step="0.01"></label></div>
+      <p>额外备用金在费用项目之外预留；若项目中已含备用金，请避免重复预留。</p>
+      <div class="table-scroll"><table><caption>支出额度试算，金额均为整趟旅行合计</caption><thead><tr><th>项目</th><th>已知金额／元</th><th>最低额度／元</th><th>最高额度／元</th><th>权重</th><th>保持不变</th><th>分配额度</th></tr></thead><tbody id="budget-rows"></tbody></table></div>
+      <p id="budget-result" role="status" aria-live="polite"></p>
+      <div class="actions"><button id="add-item" type="button">添加可调支出</button><button id="export-budget" type="button">导出调整草稿</button><button id="reset-budget" type="button" class="secondary">恢复原始试算</button></div>
+      <p>调整只在当前页面试算，不会改动已确认计划。导出后交给助手核对，确认保存后再更新网站。关闭页面前请导出需要保留的调整。</p>
+    </section>
+    <section id="references"><h2>出发前，再看一眼</h2><h3>待核实事项</h3><ul id="pending"></ul><h3>来源与介绍</h3><ul id="sources"></ul></section>
+  </main>
+  <footer>慢一点，也能走得很远。<span id="footer-version"></span></footer>
+  <noscript>请启用 JavaScript 查看互动行程。同行的 overview.md、budget.md 和 routes.md 可直接阅读。</noscript>
+</body>
+</html>

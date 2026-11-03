@@ -47,6 +47,84 @@
               "type": "null"
             }
           ]
+        },
+        "parent_place_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "coordinate_system": {
+          "enum": [
+            "gcj02",
+            "wgs84",
+            "unknown"
+          ]
+        },
+        "role": {
+          "enum": [
+            "attraction",
+            "entrance",
+            "exit",
+            "hotel",
+            "station",
+            "transfer",
+            "restaurant",
+            "other"
+          ]
+        },
+        "introduction_url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recommendation_reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "photo": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https?://"
+                },
+                "source_url": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https?://"
+                },
+                "caption": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "url",
+                "source_url",
+                "caption"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -1207,7 +1285,11 @@
             "drive",
             "walk",
             "taxi",
-            "bus"
+            "bus",
+            "shuttle",
+            "cable_car",
+            "elevator",
+            "boat"
           ]
         },
         "depart_at": {
@@ -1294,6 +1376,64 @@
             {
               "type": "string",
               "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "geometry": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/geometry"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operating_window": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "first_departure_at": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "last_departure_at": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+                  },
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "first_departure_at",
+                "last_departure_at",
+                "source_ids"
+              ],
+              "additionalProperties": false
             },
             {
               "type": "null"
@@ -1930,6 +2070,15 @@
         },
         "cost_scope_reviewed": {
           "type": "boolean"
+        },
+        "scenic_visits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scenic_visit"
+          }
+        },
+        "budget_plan": {
+          "$ref": "#/$defs/budget_plan"
         }
       },
       "required": [
@@ -2085,6 +2234,240 @@
         "target_date",
         "reference_date",
         "reason"
+      ],
+      "additionalProperties": false
+    },
+    "geometry": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "actual",
+            "schematic"
+          ]
+        },
+        "coordinate_system": {
+          "enum": [
+            "gcj02",
+            "wgs84"
+          ]
+        },
+        "coordinates": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 10000,
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              },
+              {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "kind",
+        "coordinate_system",
+        "coordinates",
+        "source_ids"
+      ],
+      "additionalProperties": false
+    },
+    "scenic_visit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "day_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "scenic_place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "entry_place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "exit_place_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "activity_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          },
+          "uniqueItems": true
+        },
+        "route_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          },
+          "uniqueItems": true
+        },
+        "effort": {
+          "enum": [
+            "low",
+            "moderate",
+            "high",
+            "unknown"
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "day_id",
+        "scenic_place_id",
+        "entry_place_id",
+        "exit_place_id",
+        "activity_ids",
+        "route_ids",
+        "effort",
+        "notes",
+        "alternatives",
+        "source_ids"
+      ],
+      "additionalProperties": false
+    },
+    "budget_item": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quote_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "amount_minor": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000000000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minimum_minor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "maximum_minor": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000000000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "locked": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "quote_id",
+        "amount_minor",
+        "minimum_minor",
+        "maximum_minor",
+        "weight",
+        "locked"
+      ],
+      "additionalProperties": false
+    },
+    "budget_plan": {
+      "type": "object",
+      "properties": {
+        "reserve_minor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/budget_item"
+          }
+        }
+      },
+      "required": [
+        "reserve_minor",
+        "items"
       ],
       "additionalProperties": false
     }

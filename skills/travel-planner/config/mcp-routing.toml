@@ -52,4 +52,4 @@ huazhu_member_price = "华住官方渠道；第三方价格不视为用户会员
 live_charger_availability = "运营商官方渠道；地图POI不证明实时空闲或兼容"
 
 [excluded]
-travel_meituan = "本机配置已停用，不自动启用或作为酒店/票务兜底"
+travel_meituan = "本发行包未配置，不自动启用或作为酒店/票务兜底"

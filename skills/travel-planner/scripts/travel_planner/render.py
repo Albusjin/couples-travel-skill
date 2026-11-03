@@ -1,6 +1,7 @@
 """Versioned Markdown views, all built from one loaded trip snapshot."""
 
 import json
+import hashlib
 import os
 import shutil
 import tempfile
@@ -111,6 +112,22 @@ def views(trip, generated_at=None):
                             f"{md(r['duration_minutes'])} 分钟 + 缓冲 {sum(b['minutes'] for b in r['buffers'])} 分钟；{evidence}；{md('；'.join(details))}；{link(r['navigation_url'])}")
         for label, field in (("用餐/休息", "rest_notes"), ("自由活动", "free_time_notes"), ("天气风险", "weather_notes"), ("替代活动", "alternatives")):
             overview.append(f"{label}：{md('；'.join(day[field]) or '待补充')}")
+        for visit in trip.get("scenic_visits", []):
+            if visit["day_id"] != day["id"]:
+                continue
+            scenic = [f"### {md(places[visit['scenic_place_id']])} · 景区内部路线",
+                      f"入口：{md(places[visit['entry_place_id']])}；出口：{md(places[visit['exit_place_id']])}；强度：{visit['effort']}"]
+            for i, rid in enumerate(visit["route_ids"], 1):
+                route = routes[rid]
+                scenic.append(f"{i}. {md(places[route['from_place_id']])} → {md(places[route['to_place_id']])}；{route['mode']}；"
+                              f"{md(route['duration_minutes'])} 分钟，缓冲 {sum(b['minutes'] for b in route['buffers'])} 分钟")
+                window = route.get("operating_window")
+                if window:
+                    scenic.append(f"   运营范围：{md(window['first_departure_at'])} 至 {md(window['last_departure_at'])}；来源 {md(', '.join(window['source_ids']))}")
+            scenic.extend([f"取舍与提示：{md('；'.join(visit['notes']) or '待补充')}",
+                           f"缩短/替代路线：{md('；'.join(visit['alternatives']) or '待研究')}"])
+            overview.extend(scenic)
+            route_lines.extend([f"## {day['date']} · 景区内部", *scenic])
     overview.extend(["## 预约、预订与锁定", "本地状态不代表第三方订单被修改。"])
     for booking in trip["bookings"]:
         overview.append(f"- {booking['id']} → {booking['target_id']}：{booking['status']}；确认来源 {md(booking['confirmation_source_id'])}；退改 {md(booking['cancellation_terms'])}")
@@ -145,6 +162,17 @@ def views(trip, generated_at=None):
                          f"押金/预授权已知资金占用：{money(budget['deposit_hold_minor'], currency)}（不计消费，未知部分见清单）",
                          f"实际已付消费：{money(budget['paid_consumption_minor'], currency)}；已退款：{money(budget['refunded_consumption_minor'], currency)}",
                          "已查询不代表库存或最终成交价保证；预订前重新核验。"])
+    if "allocation" in budget:
+        allocation = budget["allocation"]
+        budget_lines.extend(["## 支出额度试算", allocation["note"],
+                             f"试算状态：{allocation['status']}；额外备用金：{money(allocation['reserve_minor'], currency)}；"
+                             f"至少差额：{money(allocation['shortfall_minor'], currency)}；未分配余额：{money(allocation['unallocated_minor'], currency)}",
+                             "| 项目 | 固定 | 最低额度 | 最高额度 | 权重 | 分配额度 |",
+                             "| --- | --- | --- | --- | --- | --- |"])
+        for row in allocation["rows"]:
+            budget_lines.append(f"| {md(row['label'])} | {'是' if row['locked'] else '否'} | "
+                                f"{money(row['minimum_minor'], currency)} | {money(row['maximum_minor'], currency) if row['maximum_minor'] is not None else '未设上限'} | "
+                                f"{row['weight']} | {money(row['allocated_minor'], currency)} |")
     pending = "## 未核实事项\n\n" + ("\n".join(f"- {i['target_id']}：{md(i['message'])}" for i in report["pending"]) or "暂无已记录的待核实项；不代表库存保证。")
     templates = PACKAGE_ROOT / "templates"
     content = {"overview.md": "\n\n".join(overview).replace("|\n\n|", "|\n|"),
@@ -154,12 +182,17 @@ def views(trip, generated_at=None):
             for name, body in content.items()}
 
 
-def render(store, trip_id):
+def render(store, trip_id, website=False, theme=None, map_config=None):
     trip = store.read(trip_id)
     namespace = "trip-" + trip_id
     generated_at = now()
     directory = store.path(namespace, "outputs", f"revision-{trip['revision']:08d}-{digest(trip)[:12]}-{uuid.uuid4().hex[:8]}")
     files = views(trip, generated_at)
+    web_metadata = None
+    if website:
+        from .web import web_files
+        web_views, web_metadata = web_files(store, trip, theme, map_config, generated_at)
+        files.update(web_views)
     directory.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not directory.exists():
         temporary = Path(tempfile.mkdtemp(prefix=".render-", dir=directory.parent))
@@ -169,7 +202,9 @@ def render(store, trip_id):
             atomic_json(temporary / "manifest.json", {"trip_id": trip_id, "revision": trip["revision"],
                                                        "document_hash": digest(trip), "generated_at": generated_at,
                                                        "validation_hash": digest(validate(trip, as_of=generated_at)),
-                                                       "files": list(files)})
+                                                       "files": list(files), "web": web_metadata,
+                                                       "file_hashes": {name: hashlib.sha256(value.encode("utf-8")).hexdigest()
+                                                                       for name, value in files.items()}})
             os.rename(temporary, directory)
         finally:
             if temporary.exists():
@@ -178,7 +213,8 @@ def render(store, trip_id):
     if store.read(trip_id)["revision"] != trip["revision"]:
         raise PlannerError("version_conflict", "渲染过程中计划已更新；历史输出保留，请渲染最新版")
     atomic_json(store.path(namespace, "OUTPUTS.json"), {"revision": trip["revision"], "directory": directory.name})
-    return {"revision": trip["revision"], "directory": str(directory), "files": [str(directory / name) for name in files]}
+    return {"revision": trip["revision"], "directory": str(directory), "files": [str(directory / name) for name in files],
+            "website": web_metadata}
 
 
 def output_status(store, trip_id):
@@ -186,11 +222,21 @@ def output_status(store, trip_id):
     path = store.path("trip-" + trip_id, "OUTPUTS.json")
     record = json.loads(path.read_text()) if path.exists() else None
     complete = False
+    web_metadata = None
     if record and record["revision"] == trip["revision"]:
         directory = store.path("trip-" + trip_id, "outputs", record["directory"])
         complete = all((directory / name).is_file() for name in ("overview.md", "budget.md", "routes.md", "manifest.json"))
         if complete:
             manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
             complete = manifest["document_hash"] == digest(trip) and manifest["validation_hash"] == digest(validate(trip))
+            if complete:
+                for name, expected in manifest.get("file_hashes", {}).items():
+                    file = directory / name
+                    if (not file.resolve().is_relative_to(directory.resolve()) or not file.is_file()
+                            or hashlib.sha256(file.read_bytes()).hexdigest() != expected):
+                        complete = False
+                        break
+            web_metadata = manifest.get("web")
     return {"revision": trip["revision"], "outputs_current": bool(complete),
-            "last_output_revision": record["revision"] if record else None}
+            "last_output_revision": record["revision"] if record else None,
+            "website_current": bool(complete and web_metadata), "website": web_metadata if complete else None}
