@@ -1,6 +1,6 @@
 # 给接收方 Agent 的入口
 
-先读取 **[skills/travel-planner/AGENT_HANDOFF.md](skills/travel-planner/AGENT_HANDOFF.md)**，再执行安装与配置。
+仓库内工作先读取 **[AGENTS.md](AGENTS.md)**；安装与配置再读取 **[skills/travel-planner/AGENT_HANDOFF.md](skills/travel-planner/AGENT_HANDOFF.md)**。
 
 - 从整个仓库下载：Skill 根目录是 `skills/travel-planner/`。
 - 从通用 Skill ZIP 下载：解压后的 `travel-planner/` 本身就是 Skill 根目录，完整交接文档在其中。
